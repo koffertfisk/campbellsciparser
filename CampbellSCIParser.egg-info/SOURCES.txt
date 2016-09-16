@@ -1,0 +1,5 @@
+setup.py
+CampbellSCIParser.egg-info/PKG-INFO
+CampbellSCIParser.egg-info/SOURCES.txt
+CampbellSCIParser.egg-info/dependency_links.txt
+CampbellSCIParser.egg-info/top_level.txt
