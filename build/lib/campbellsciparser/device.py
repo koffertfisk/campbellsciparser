@@ -1,7 +1,7 @@
 #!/usr/bin/env
 # -*- coding: utf-8 -*-
 
-"""Module for parsing and exporting comma-separated data collected by Campbell data loggers. """
+"""API for parsing and exporting comma-separated data collected by Campbell datalogger. """
 
 import csv
 import os
