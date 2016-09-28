@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import shutil
 import unittest
 
-from loggerparser.device import CR10X
+from campbellsciparser.device import CR10X
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -35,6 +35,7 @@ class GetDataTestCase(unittest.TestCase):
     def delete_output(self, file_path):
         dirname = os.path.dirname(file_path)
         shutil.rmtree(dirname)
+
 
 class GetArrayIdsDataTestCase(GetDataTestCase):
 
