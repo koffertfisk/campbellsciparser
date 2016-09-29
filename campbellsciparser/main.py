@@ -15,4 +15,4 @@ if __name__ == '__main__':
     #fieldnames_indexes = [i for i, name in enumerate(fieldnames)]
     updated = CR10X.convert_time(data=data.get('201'), headers=fieldnames, time_columns=["Year_RTM","Day_RTM","Hour_Minute_RTM"], data_time_zone='Etc/GMT-1', to_utc=True)
     #headers_updated, data_converted = updated
-    CR10X.export_to_csv(data_converted, 'D:/test/new/out.dat', header=headers_updated, output_mismatched_columns=True, include_time_zone=True)
+    CR10X.export_to_csv(data_converted, 'D:/test/new/out.dat', headers=headers_updated, output_mismatched_columns=True, include_time_zone=True)

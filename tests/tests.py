@@ -134,7 +134,7 @@ class GetArrayIdsData(GetArrayIdsDataTestCase):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
         data_mixed = CR10X.get_data(file)
         data_split = CR10X.get_array_ids_data(file)
-        data_filtered = CR10X.filter_array_ids(data_split)
+        data_filtered = CR10X.filter_data_by_array_ids(data_split)
         data_split_merged = []
         for array_id, array_id_data in data_filtered.items():
             for row in array_id_data:
@@ -146,7 +146,7 @@ class GetArrayIdsData(GetArrayIdsDataTestCase):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
         data_mixed = CR10X.get_data(file)
         data_split = CR10X.get_array_ids_data(file)
-        data_split_filtered = CR10X.filter_array_ids(data_split, '201', '203', '204', '210')
+        data_split_filtered = CR10X.filter_data_by_array_ids(data_split, '201', '203', '204', '210')
         data_split_merged = []
         for array_id, array_id_data in data_split_filtered.items():
             for row in array_id_data:
@@ -159,7 +159,7 @@ class GetArrayIdsData(GetArrayIdsDataTestCase):
         file_filtered = os.path.join(THIS_DIR, 'testdata/csv_testdata_filtered_rows.dat')
         data_pre_filtered = CR10X.get_data(file_filtered)
         data_split_unfiltered = CR10X.get_array_ids_data(file_unfiltered)
-        data_split_filtered = CR10X.filter_array_ids(data_split_unfiltered, '201', '203')
+        data_split_filtered = CR10X.filter_data_by_array_ids(data_split_unfiltered, '201', '203')
         data_split_filtered_merged = []
         for array_id, array_id_data in data_split_filtered.items():
             for row in array_id_data:
@@ -193,7 +193,7 @@ class GetArrayIdsData(GetArrayIdsDataTestCase):
         header = ["Array_Id","Year_RTM","Day_RTM","Hour_Minute_RTM","Tot_rad_AVG","Air_Temp2_AVG","Air_Temp1",
                   "Humidity_AVG","Wind_spd_S_WVT","Wind_spd_U_WVT","Wind_dir_DU_WVT","Wind_dir_SDU_WVT",
                   "Wind_spd3_AVG","BadTemp_AVG","PAR_AVG","Air_Pres_AVG"]
-        CR10X.export_to_csv(data_source_file_mixed, output_file, header=header)
+        CR10X.export_to_csv(data_source_file_mixed, output_file, headers=header)
         data_exported_file_mixed = CR10X.get_data(output_file)
         data_exported_file_header = data_exported_file_mixed[0]
         self.assertDataContentEqual(header, data_exported_file_header)
@@ -222,7 +222,7 @@ class GetArrayIdsData(GetArrayIdsDataTestCase):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
         output_file = os.path.join(THIS_DIR, 'testoutput/test.dat')
         data_split_unfiltered = CR10X.get_array_ids_data(file)
-        data_split_filtered = CR10X.filter_array_ids(data_split_unfiltered, '201')
+        data_split_filtered = CR10X.filter_data_by_array_ids(data_split_unfiltered, '201')
         data_split_array_id_filtered = data_split_filtered.get('201')
         CR10X.export_array_ids_to_csv(data_split_unfiltered, {'201': {'file_path': output_file}})
         data_exported_file = CR10X.get_data(output_file)
@@ -235,7 +235,7 @@ class GetArrayIdsData(GetArrayIdsDataTestCase):
         output_file_1 = os.path.join(THIS_DIR, 'testoutput/test_1.dat')
         output_file_2 = os.path.join(THIS_DIR, 'testoutput/test_2.dat')
         data_split_unfiltered = CR10X.get_array_ids_data(file)
-        data_split_filtered = CR10X.filter_array_ids(data_split_unfiltered, '201', '203')
+        data_split_filtered = CR10X.filter_data_by_array_ids(data_split_unfiltered, '201', '203')
         headers_1 = ["Array_Id","Year_RTM","Day_RTM","Hour_Minute_RTM","Tot_rad_AVG","Air_Temp2_AVG","Air_Temp1",
                      "Humidity_AVG","Wind_spd_S_WVT","Wind_spd_U_WVT","Wind_dir_DU_WVT","Wind_dir_SDU_WVT",
                      "Wind_spd3_AVG","BadTemp_AVG","PAR_AVG","Air_Pres_AVG"]

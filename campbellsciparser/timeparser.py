@@ -19,9 +19,11 @@ class TimeColumnValueError(ValueError):
     def __init__(self, *args, **kwargs):
         super().__init__(self, *args, **kwargs)
 
+
 class UnsupportedTimeFormatError(ValueError):
     def __init__(self, *args, **kwargs):
         super().__init__(self, *args, **kwargs)
+
 
 class CampbellTimeParser(object):
     """Base class for converting Campbell time formats to timestamp. """
@@ -65,10 +67,10 @@ class CampbellTimeParser(object):
         return parsed_dt
 
 
-class CR10XTimeParser(TimeParser):
+class CR10XTimeParser(CampbellTimeParser):
 
     def __init__(self, time_zone='UTC'):
-        TimeParser.__init__(self, time_zone=time_zone, time_format_library=['%Y', '%j', 'Hour/Minute'])
+        CampbellTimeParser.__init__(self, time_zone=time_zone, time_format_library=['%Y', '%j', 'Hour/Minute'])
 
     def parse_custom_format(self, *timevalues):
         """Parses the custom time format CR10X.
