@@ -40,23 +40,21 @@ class CampbellTimeParser(object):
         self.time_format_library = time_format_library
 
     def parse_custom_format(self, *args):
-        return {}
+        pass
 
     def parse_time(self, *args, to_utc=False):
         """Converts the given raw data time format to a datetime object (local time zone -> UTC).
         Args:
-            args:
+            args (string): Time strings to be parsed.
         """
-        parsed_time_info = self.parse_custom_format(*args)
+        parsed_time_format, parsed_time = self.parse_custom_format(*args)
 
         try:
-            t = time.strptime(parsed_time_info.get('parsed_time'), parsed_time_info.get('parsed_time_format'))
+            t = time.strptime(parsed_time, parsed_time_format)
             dt = datetime.fromtimestamp(time.mktime(t))
             loc_dt = self.time_zone.localize(dt)
         except ValueError:
-            print("Could not parse time string {0} using the format {1}".format(
-                parsed_time_info.get('parsed_time'), parsed_time_info.get('parsed_time_format'))
-            )
+            print("Could not parse time string {0} using the format {1}".format(parsed_time, parsed_time_format))
             loc_dt = datetime.fromtimestamp(0, self.time_zone)
 
         parsed_dt = loc_dt
@@ -70,34 +68,7 @@ class CampbellTimeParser(object):
 class CR10XTimeParser(CampbellTimeParser):
 
     def __init__(self, time_zone='UTC'):
-        CampbellTimeParser.__init__(self, time_zone=time_zone, time_format_library=['%Y', '%j', 'Hour/Minute'])
-
-    def parse_custom_format(self, *timevalues):
-        """Parses the custom time format CR10X.
-        Args:
-            timeargs (string): Time strings to be parsed.
-        Returns:
-            Parsed time format string representation and value.
-
-        """
-        time_values = list(timevalues)
-        if len(time_values) > 2:
-            raise UnsupportedTimeFormatError(
-                "CR10XTimeParser only supports Year, Day, Hour/Minute, got {0} time values".format(len(time_values)))
-        found_time_format_args = []
-        parsing_info = namedtuple('ParsedTimeInfo', ['parsed_time_format', 'parsed_time'])
-
-        for i, value in enumerate(time_values):
-            found_time_format_args.append(self.time_format_library[i])
-            if i == 2:     # Time string "Hour/Minute" reached
-                parsed_time_format, parsed_time = self._parse_hourminute(value)
-                found_time_format_args[2] = parsed_time_format
-                time_values[2] = parsed_time
-
-        time_format_str = ','.join(found_time_format_args)
-        time_values_str = ','.join(time_values)
-
-        return parsing_info(time_format_str, time_values_str)
+        super().__init__(time_zone=time_zone, time_format_library=['%Y', '%j', 'Hour/Minute'])
 
     def _parse_hourminute(self, hour_minute_str):
         """Parses the CR10X time format column 'Hour/Minute'.
@@ -131,3 +102,30 @@ class CR10XTimeParser(CampbellTimeParser):
             raise ValueError("Hour/Minute {0} could not be parsed!".format(hour_minute_str))
 
         return parsing_info(parsed_time_format, parsed_time)
+
+    def parse_custom_format(self, *timevalues):
+        """Parses the custom time format CR10X.
+        Args:
+            timeargs (string): Time strings to be parsed.
+        Returns:
+            Parsed time format string representation and value.
+
+        """
+        time_values = list(timevalues)
+        if len(time_values) > 3:
+            raise UnsupportedTimeFormatError(
+                "CR10XTimeParser only supports Year, Day, Hour/Minute, got {0} time values".format(len(time_values)))
+        found_time_format_args = []
+        parsing_info = namedtuple('ParsedTimeInfo', ['parsed_time_format', 'parsed_time'])
+
+        for i, value in enumerate(time_values):
+            found_time_format_args.append(self.time_format_library[i])
+            if i == 2:     # Time string "Hour/Minute" reached
+                parsed_time_format, parsed_time = self._parse_hourminute(value)
+                found_time_format_args[2] = parsed_time_format
+                time_values[2] = parsed_time
+
+        time_format_str = ','.join(found_time_format_args)
+        time_values_str = ','.join(time_values)
+
+        return parsing_info(time_format_str, time_values_str)

@@ -35,8 +35,8 @@ class ArrayIdsFilePathError(ArrayIdsInfoError):
 class CR10X(object):
     """Parses and exports data files collected by Campbell Scientific CR10X data loggers. """
 
-    @classmethod
-    def _data_generator(cls, data):
+    @staticmethod
+    def _data_generator(data):
         """Turns data set (list) into a generator.
 
         Args:
@@ -49,8 +49,8 @@ class CR10X(object):
         for row in data:
             yield row
 
-    @classmethod
-    def _datetime_to_str_no_time_zone(cls, dt):
+    @staticmethod
+    def _datetime_to_str_no_time_zone(dt):
         """Produces a string representation from a datetime object, omitting time zone information.
 
         Args:
@@ -62,8 +62,8 @@ class CR10X(object):
         """
         return dt.strftime("%Y-%m-%d %H:%M:%S")
 
-    @classmethod
-    def _find_first_time_column_index(cls, headers, time_columns):
+    @staticmethod
+    def _find_first_time_column_index(headers, time_columns):
         """
         Search for the first time representation column within the headers. Used for inserting the parsed time
         column on the found position.
@@ -85,8 +85,8 @@ class CR10X(object):
         else:
             raise timeparser.TimeColumnValueError("First time column '{0}' not found in headers!".format(time_columns[0]))
 
-    @classmethod
-    def _process_rows(cls, infile_path, line_num=0, fix_floats=True):
+    @staticmethod
+    def _process_rows(infile_path, line_num=0, fix_floats=True):
         """Helper method for _read_data.
 
         Args:
@@ -113,8 +113,8 @@ class CR10X(object):
                 for row in rows:
                     yield row
 
-    @classmethod
-    def _read_data(cls, infile_path, line_num=0, fix_floats=True):
+    @staticmethod
+    def _read_data(infile_path, line_num=0, fix_floats=True):
         """Produces a generator object of data read from given file input starting from a given line number.
 
         Args:
@@ -126,11 +126,11 @@ class CR10X(object):
             Each processed row, one at a time.
 
         """
-        for row in cls._process_rows(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats):
+        for row in CR10X._process_rows(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats):
             yield row
 
-    @classmethod
-    def _row_str_conversion_generator(cls, row, include_time_zone=False):
+    @staticmethod
+    def _row_str_conversion(row, include_time_zone=False):
         """Produces a generator object for the values in a row, converted to strings.
 
         Args:
@@ -141,15 +141,16 @@ class CR10X(object):
             String representation of each value.
 
         """
-        for value in row:
+        for i, value in enumerate(row):
             if not include_time_zone and isinstance(value, datetime):
-                value = cls._datetime_to_str_no_time_zone(value)
+                row[i] = CR10X._datetime_to_str_no_time_zone(value)
             else:
-                value = str(value)
-            yield value
+                row[i] = str(value)
 
-    @classmethod
-    def convert_time(cls, data, headers=None, time_parsed_column="Timestamp", time_columns=None, data_time_zone='UTC',
+        return row
+
+    @staticmethod
+    def convert_time(data, headers=None, time_parsed_column="Timestamp", time_columns=None, data_time_zone='UTC',
                      to_utc=False):
         """Converts specific time columns from a data set into a single timestamp column.
 
@@ -178,12 +179,12 @@ class CR10X(object):
         data_converted = []
 
         if headers_pre_conversion:
-            first_time_column_index = cls._find_first_time_column_index(headers_pre_conversion, time_columns)
+            first_time_column_index = CR10X._find_first_time_column_index(headers_pre_conversion, time_columns)
 
-        for row in cls._data_generator(data):
+        for row in CR10X._data_generator(data):
             if not headers_pre_conversion:
                 headers_pre_conversion = [i for i, value in enumerate(row)]   # Construct headers from the rows' length
-                first_time_column_index = cls._find_first_time_column_index(headers_pre_conversion, time_columns)
+                first_time_column_index = CR10X._find_first_time_column_index(headers_pre_conversion, time_columns)
             if not headers_post_conversion:
                 headers_post_conversion = [name for name in headers_pre_conversion if name not in time_columns]
                 headers_post_conversion.insert(first_time_column_index, time_parsed_column)
@@ -197,8 +198,8 @@ class CR10X(object):
 
         return data_post_conversion(headers_post_conversion, data_converted)
 
-    @classmethod
-    def export_to_csv(cls, data, outfile_path, headers=None, match_num_of_columns=True, output_mismatched_columns=False,
+    @staticmethod
+    def export_to_csv(data, outfile_path, headers=None, match_num_of_columns=True, output_mismatched_columns=False,
                       mode='a', include_time_zone=False):
         """Export data as a comma-separated values file.
 
@@ -232,13 +233,13 @@ class CR10X(object):
         with open(outfile_path, mode) as f_out:
             if headers_to_export:
                 f_out.write(",".join(headers_to_export) + "\n")
-            for row in cls._data_generator(data):
+            for row in CR10X._data_generator(data):
                 if headers and match_num_of_columns:
                     if len(headers) != len(row):
                         if output_mismatched_columns:
                             mismatched_columns.append(row)
                         continue
-                f_out.write((",".join(cls._row_str_conversion_generator(row, include_time_zone)) + "\n"))
+                f_out.write((",".join(CR10X._row_str_conversion(row, include_time_zone)) + "\n"))
 
         if mismatched_columns:
             output_dir, file = os.path.split(outfile_path)
@@ -246,12 +247,12 @@ class CR10X(object):
             mismatched_columns_file = os.path.join(output_dir, file_name + " Mismatched columns" + file_extension)
 
             with open(mismatched_columns_file, mode) as f_out:
-                for row in cls._data_generator(mismatched_columns):
-                    f_out.write((",".join(cls._row_str_conversion_generator(row, include_time_zone)) + "\n"))
+                for row in CR10X._data_generator(mismatched_columns):
+                    f_out.write((",".join(CR10X._row_str_conversion(row, include_time_zone)) + "\n"))
 
-    @classmethod
-    def export_array_ids_to_csv(cls, data, array_ids_info, match_num_of_columns=True, output_mismatched_columns=False,
-                                mode='a'):
+    @staticmethod
+    def export_array_ids_to_csv(data, array_ids_info, match_num_of_columns=True, output_mismatched_columns=False,
+                                mode='a', include_time_zone=False):
         """Export array ids data as separate comma-separated values files.
 
         Args:
@@ -260,6 +261,7 @@ class CR10X(object):
             match_num_of_columns (bool): Match number of header columns to number of the rows' columns.
             output_mismatched_columns (bool): Output mismatched columns (with respect to header length).
             mode (str): Output file open mode, defaults to append. See Python Docs for other mode options.
+            include_time_zone (bool): Include time zone in string converted datetime objects.
 
         Raises:
             ArrayIdsInfoError: If not at least one array id in array_ids_info is found.
@@ -270,7 +272,7 @@ class CR10X(object):
         if len(array_ids_info) < 1:
             raise ArrayIdsInfoError("At least one array id must be given!")
 
-        data_filtered = cls.filter_data_by_array_ids(*array_ids_info.keys(), data=data)
+        data_filtered = CR10X.filter_data_by_array_ids(*array_ids_info.keys(), data=data)
 
         for array_id, array_id_data in data_filtered.items():
             export_info = array_ids_info.get(array_id)
@@ -279,42 +281,46 @@ class CR10X(object):
             file_path = export_info.get('file_path')
             if not file_path:
                 raise ArrayIdsFilePathError("Not file path was found for array id {0}".format(array_id))
-            header = export_info.get('header')
-            cls.export_to_csv(array_id_data, file_path, header, match_num_of_columns=match_num_of_columns,
-                              output_mismatched_columns=output_mismatched_columns, mode=mode)
+            headers = export_info.get('headers')
+            CR10X.export_to_csv(array_id_data, file_path, headers, match_num_of_columns=match_num_of_columns,
+                                output_mismatched_columns=output_mismatched_columns, mode=mode,
+                                include_time_zone=include_time_zone)
 
-    @classmethod
-    def filter_data_by_array_ids(cls, *array_ids, data):
+    @staticmethod
+    def filter_data_by_array_ids(*array_ids, data):
         """Filter data set by array ids.
 
         Args:
-            *array_ids: Array ids to filter by.
+            *array_ids: Array ids to filter by. If no arguments are given, return unfiltered data set.
             data (dict(list), list): Array id separated or mixed data.
 
         Returns:
-            Filtered data set.
+            Filtered data set if array ids are given, unfiltered otherwise. If a mixed data set is given, return
+            unfiltered data set split by its array ids.
 
         """
         data_filtered = defaultdict(list)
 
-        if not array_ids:
-            return data
-        else:
-            if isinstance(data, dict):
-                for array_id, array_id_data in data.items():
-                    if array_id in array_ids:
-                        data_filtered[array_id] = array_id_data
-            elif isinstance(data, list):
-                for row in cls._data_generator(data):
+        if isinstance(data, dict):
+            if not array_ids:
+                return data     # Return unfiltered data set
+            for array_id, array_id_data in data.items():
+                if array_id in array_ids:
+                    data_filtered[array_id] = array_id_data
+        elif isinstance(data, list):
+            for row in CR10X._data_generator(data):
+                if not array_ids:
+                    data_filtered[row[0]].append(row)   # Append to unfiltered data set, but split by array ids.
+                else:
                     if row[0] in array_ids:
                         data_filtered[row[0]].append(row)
-            else:
-                raise TypeError("Data collection of type {0} not supported. Valid collection types are dict and list.")
+        else:
+            raise TypeError("Data collection of type {0} not supported. Valid collection types are dict and list.")
 
         return data_filtered
 
-    @classmethod
-    def read_array_ids_data(cls, infile_path, line_num=0, fix_floats=True, array_ids_info=None):
+    @staticmethod
+    def read_array_ids_data(infile_path, line_num=0, fix_floats=True, array_ids_info=None):
         """Parses data filtered by array id (each rows' first element) from a given file.
 
         Args:
@@ -327,8 +333,11 @@ class CR10X(object):
             All data found from the given line number onwards, filtered by array id.
 
         """
-        data_mixed = cls.read_mixed_data(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats)
-        data_by_array_ids = cls.filter_data_by_array_ids(*array_ids_info.keys(), data=data_mixed)
+        if not array_ids_info:
+            array_ids_info = {}
+        array_ids = [key for key in array_ids_info.keys()]
+        data_mixed = CR10X.read_mixed_data(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats)
+        data_by_array_ids = CR10X.filter_data_by_array_ids(*array_ids, data=data_mixed)
         for array_id, array_name in array_ids_info.items():
             if array_id in data_by_array_ids:
                 if array_name:
@@ -336,8 +345,8 @@ class CR10X(object):
 
         return data_by_array_ids
 
-    @classmethod
-    def read_mixed_data(cls, infile_path, line_num=0, fix_floats=True):
+    @staticmethod
+    def read_mixed_data(infile_path, line_num=0, fix_floats=True):
         """Parses data from a given file without filtering.
 
         Args:
@@ -349,4 +358,4 @@ class CR10X(object):
             All data found from the given line number onwards.
 
         """
-        return [row for row in cls._read_data(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats)]
+        return [row for row in CR10X._read_data(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats)]
