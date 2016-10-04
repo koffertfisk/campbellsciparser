@@ -58,6 +58,7 @@ class CampbellTimeParser(object):
             loc_dt = datetime.fromtimestamp(0, self.time_zone)
 
         parsed_dt = loc_dt
+
         if to_utc:
             utc_dt = loc_dt.astimezone(pytz.utc)
             parsed_dt = utc_dt
@@ -70,7 +71,8 @@ class CR10XTimeParser(CampbellTimeParser):
     def __init__(self, time_zone='UTC'):
         super().__init__(time_zone=time_zone, time_format_library=['%Y', '%j', 'Hour/Minute'])
 
-    def _parse_hourminute(self, hour_minute_str):
+    @staticmethod
+    def _parse_hourminute(hour_minute_str):
         """Parses the CR10X time format column 'Hour/Minute'.
 
         Args:
@@ -129,3 +131,14 @@ class CR10XTimeParser(CampbellTimeParser):
         time_values_str = ','.join(time_values)
 
         return parsing_info(time_format_str, time_values_str)
+
+
+class CR1000TimeParser(CampbellTimeParser):
+
+    def __init__(self, time_zone='UTC'):
+        super().__init__(time_zone=time_zone, time_format_library=['%Y-%m-%d %H:%M:%S'])
+
+    def parse_custom_format(self, *timevalues):
+        parsing_info = namedtuple('ParsedTimeInfo', ['parsed_time_format', 'parsed_time'])
+
+        return parsing_info(self.time_format_library[0], timevalues[0])

@@ -5,11 +5,27 @@
 
 import csv
 import os
+import time
 
-from collections import defaultdict, namedtuple
+import pytz
+
+from collections import defaultdict, namedtuple, OrderedDict
 from datetime import datetime
 
-from campbellsciparser import timeparser
+
+class TimeConversionException(Exception):
+    """Base class for exceptions in this module"""
+    pass
+
+
+class TimeColumnValueError(ValueError):
+    def __init__(self, *args, **kwargs):
+        super().__init__(self, *args, **kwargs)
+
+
+class UnsupportedTimeFormatError(ValueError):
+    def __init__(self, *args, **kwargs):
+        super().__init__(self, *args, **kwargs)
 
 
 class DataTypeError(TypeError):
@@ -32,15 +48,26 @@ class ArrayIdsFilePathError(ArrayIdsInfoError):
         super().__init__(self, *args, **kwargs)
 
 
-class CR10X(object):
-    """Parses and exports data files collected by Campbell Scientific CR10X data loggers. """
+class CampbellSCILoggerParser(object):
+    """Base class for parsing and exporting data collected by Campbell Scientific data loggers. """
+
+    def __init__(self, time_zone, time_format_args_library):
+        """Initializes the data logger parser with time arguments (needed for time parsing and conversion).
+
+        Args:
+            time_zone (string): Data pytz time zone, used for localization. See pytz docs for reference.
+            time_format_args_library (list): List of expected time string representations.
+
+        """
+        self.time_zone = pytz.timezone(time_zone)
+        self.time_format_args_library = time_format_args_library
 
     @staticmethod
     def _data_generator(data):
         """Turns data set (list) into a generator.
 
         Args:
-            data (list): Data set (list of rows) to process.
+            data (list*OrderedDict): Data set (list of rows) to process.
 
         Returns:
             Each row, one at a time.
@@ -63,7 +90,7 @@ class CR10X(object):
         return dt.strftime("%Y-%m-%d %H:%M:%S")
 
     @staticmethod
-    def _find_first_time_column_index(headers, time_columns):
+    def _find_first_time_column_key(headers, time_columns):
         """
         Search for the first time representation column within the headers. Used for inserting the parsed time
         column on the found position.
@@ -79,20 +106,24 @@ class CR10X(object):
             TimeColumnValueError: If the first time column is not present in the headers.
 
         """
-        for i, name in enumerate(headers):
-            if name == time_columns[0]:
-                return i
+        for key in headers:
+            if key == time_columns[0]:
+                return key
         else:
-            raise timeparser.TimeColumnValueError("First time column '{0}' not found in headers!".format(time_columns[0]))
+            raise TimeColumnValueError("First time column '{0}' not found in headers!".format(time_columns[0]))
+
+    def _parse_custom_format(self, *args):
+        parsing_info = namedtuple('ParsedHourMinInfo', ['parsed_time_format', 'parsed_time'])
+
+        return parsing_info("", "")
 
     @staticmethod
-    def _process_rows(infile_path, line_num=0, fix_floats=True):
+    def _process_rows(infile_path, headers=None, header_row=None, line_num=0):
         """Helper method for _read_data.
 
         Args:
             infile_path (str): Input file's absolute path.
             line_num (int): Line number to start at. NOTE: Zero-based numbering.
-            fix_floats (bool): Correct leading zeros floating points since the CR10X does not output leading zeros.
 
         Returns:
             Each processed row, one at a time.
@@ -100,66 +131,64 @@ class CR10X(object):
         """
         with open(infile_path, 'r') as f:
             rows = csv.reader(f)
-            if fix_floats:
-                replacements = {'.': '0.', '-.': '-0.'}    # Patterns to look for
+            if headers:
+                pass
+            elif header_row and header_row >= 0:
+                headers = rows.__next__()
+                for i in range(header_row):
+                    headers = rows.__next__()
+            if headers:
                 for row in rows:
-                    if line_num <= (rows.line_num - 1):   # Correct reader for zero-based numbering
-                        for i, value in enumerate(row):
-                            for source, replacement in replacements.items():
-                                if value.startswith(source):
-                                    row[i] = value.replace(source, replacement)
-                        yield row
+                    if line_num <= (rows.line_num - 1):
+                        yield OrderedDict([(header, value) for header, value in zip(headers, row)])
             else:
                 for row in rows:
-                    yield row
+                    if line_num <= (rows.line_num - 1):
+                        yield OrderedDict([(i, value) for i, value in enumerate(row)])
 
-    @staticmethod
-    def _read_data(infile_path, line_num=0, fix_floats=True):
-        """Produces a generator object of data read from given file input starting from a given line number.
+    def _read_data(self, infile_path, headers=None, header_row=None, line_num=0):
+        """
+        Produces a generator object of data read from given file input starting from a given line number.
 
         Args:
             infile_path (str): Input file's absolute path.
             line_num (int): Line number to start at. NOTE: Zero-based numbering.
-            fix_floats (bool): Correct leading zeros floating points since the CR10X does not output leading zeros.
 
         Returns:
             Each processed row, one at a time.
 
         """
-        for row in CR10X._process_rows(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats):
+        for row in self._process_rows(infile_path, headers=headers, header_row=header_row, line_num=line_num):
             yield row
 
-    @staticmethod
-    def _row_str_conversion(row, include_time_zone=False):
+    def _row_str_conversion(self, row, include_time_zone=False):
         """Produces a generator object for the values in a row, converted to strings.
 
         Args:
-            row (list): List of values read from a row.
+            row (OrderedDict): List of values read from a row.
             include_time_zone (bool): Include time zone in string converted datetime objects.
 
         Returns:
             String representation of each value.
 
         """
-        for i, value in enumerate(row):
+
+        for key, value in row.items():
             if not include_time_zone and isinstance(value, datetime):
-                row[i] = CR10X._datetime_to_str_no_time_zone(value)
+                row[key] = self._datetime_to_str_no_time_zone(value)
             else:
-                row[i] = str(value)
+                row[key] = str(value)
 
         return row
 
-    @staticmethod
-    def convert_time(data, headers=None, time_parsed_column="Timestamp", time_columns=None, data_time_zone='UTC',
-                     to_utc=False):
+    def convert_time(self, data, time_parsed_column=None, time_columns=None, to_utc=False):
         """Converts specific time columns from a data set into a single timestamp column.
 
         Args:
-             data (list): Data set to convert.
+             data (list*OrderedDict): Data set to convert.
              headers (list): Column headers to match time columns against. If not given, use each rows' index instead.
              time_parsed_column (str): Converted time column name.
              time_columns (list): Column(s) to use for time conversion.
-             data_time_zone (str): Pytz time zone of the recorded data.
              to_utc (bool): Convert time to UTC.
 
         Returns:
@@ -170,37 +199,32 @@ class CR10X(object):
 
         """
         if not time_columns:
-            raise timeparser.TimeColumnValueError("At least one time column is required!")
+            raise TimeColumnValueError("At least one time column is required!")
 
-        time_parser = timeparser.CR10XTimeParser(time_zone=data_time_zone)
-        headers_pre_conversion = headers
-        headers_post_conversion = None
-        data_post_conversion = namedtuple('ConversionResults', ['headers_updated', 'data_converted'])
         data_converted = []
 
-        if headers_pre_conversion:
-            first_time_column_index = CR10X._find_first_time_column_index(headers_pre_conversion, time_columns)
+        for row in self._data_generator(data):
+            first_time_column_key = self._find_first_time_column_key(list(row.keys()), time_columns)
+            row_time_column_values = [value for key, value in row.items() if key in time_columns]
+            row_time_converted = self.parse_time(*row_time_column_values, to_utc=to_utc)
 
-        for row in CR10X._data_generator(data):
-            if not headers_pre_conversion:
-                headers_pre_conversion = [i for i, value in enumerate(row)]   # Construct headers from the rows' length
-                first_time_column_index = CR10X._find_first_time_column_index(headers_pre_conversion, time_columns)
-            if not headers_post_conversion:
-                headers_post_conversion = [name for name in headers_pre_conversion if name not in time_columns]
-                headers_post_conversion.insert(first_time_column_index, time_parsed_column)
+            old_key = first_time_column_key
+            new_key = old_key
+            if time_parsed_column:
+                new_key = time_parsed_column
 
-            row_time_column_values = [column for header, column in zip(headers_pre_conversion, row) if header in time_columns]
-            row_converted = [value for name, value in zip(headers_pre_conversion, row) if name not in time_columns]
-            row_time_converted = time_parser.parse_time(*row_time_column_values, to_utc=to_utc)
-            row_converted.insert(first_time_column_index, row_time_converted)
+            row_converted = OrderedDict((new_key if key == old_key else key, value) for key, value in row.items())
+            row_converted[new_key] = row_time_converted
+
+            for time_column in time_columns:
+                if time_column in row_converted and time_column != new_key:
+                    del row_converted[time_column]
 
             data_converted.append(row_converted)
 
-        return data_post_conversion(headers_post_conversion, data_converted)
+        return data_converted
 
-    @staticmethod
-    def export_to_csv(data, outfile_path, headers=None, match_num_of_columns=True, output_mismatched_columns=False,
-                      mode='a', include_time_zone=False):
+    def export_to_csv(self, data, outfile_path, export_headers=False, mode='a', include_time_zone=False):
         """Export data as a comma-separated values file.
 
         Args:
@@ -216,43 +240,179 @@ class CR10X(object):
             DataTypeError: If data is not a list.
 
         """
-        headers_to_export = headers
-        mismatched_columns = []     # If row length matching is enabled, all mismatched columns will be stored in this list.
-
-        if not isinstance(data, list):
-            raise DataTypeError("Data must be of type list, got {0}".format(type(data)))
 
         os.makedirs(os.path.dirname(outfile_path), exist_ok=True)
 
-        if os.path.exists(outfile_path) and headers:
+        if os.path.exists(outfile_path) and export_headers:
             with open(outfile_path, 'r') as temp_f:
                 f_list = [line.strip() for line in temp_f]
             if len(f_list) > 0:
-                headers_to_export = None
+                export_headers = False
 
         with open(outfile_path, mode) as f_out:
-            if headers_to_export:
-                f_out.write(",".join(headers_to_export) + "\n")
-            for row in CR10X._data_generator(data):
-                if headers and match_num_of_columns:
-                    if len(headers) != len(row):
-                        if output_mismatched_columns:
-                            mismatched_columns.append(row)
-                        continue
-                f_out.write((",".join(CR10X._row_str_conversion(row, include_time_zone)) + "\n"))
+            for row in self._data_generator(data):
+                if export_headers:
+                    f_out.write(",".join(list(row.keys())) + "\n")
+                    export_headers = False
+                f_out.write((",".join(self._row_str_conversion(row, include_time_zone)) + "\n"))
 
-        if mismatched_columns:
-            output_dir, file = os.path.split(outfile_path)
-            file_name, file_extension = os.path.splitext(file)
-            mismatched_columns_file = os.path.join(output_dir, file_name + " Mismatched columns" + file_extension)
+    def parse_time(self, *args, to_utc=False):
+        """Converts the given raw data time format to a datetime object (local time zone -> UTC).
+        Args:
+            args (string): Time strings to be parsed.
+        """
+        parsed_time_format, parsed_time = self._parse_custom_format(*args)
 
-            with open(mismatched_columns_file, mode) as f_out:
-                for row in CR10X._data_generator(mismatched_columns):
-                    f_out.write((",".join(CR10X._row_str_conversion(row, include_time_zone)) + "\n"))
+        try:
+            t = time.strptime(parsed_time, parsed_time_format)
+            dt = datetime.fromtimestamp(time.mktime(t))
+            loc_dt = self.time_zone.localize(dt)
+        except ValueError:
+            print("Could not parse time string {0} using the format {1}".format(parsed_time, parsed_time_format))
+            loc_dt = datetime.fromtimestamp(0, self.time_zone)
+
+        parsed_dt = loc_dt
+
+        if to_utc:
+            utc_dt = loc_dt.astimezone(pytz.utc)
+            parsed_dt = utc_dt
+
+        return parsed_dt
+
+    def read_data(self, infile_path, headers=None, header_row=None, line_num=0, convert_time=False,
+                  time_parsed_column="Timestamp", time_columns=None, to_utc=False):
+        """Parses data from a given file without filtering.
+
+        Args:
+            infile_path (str): Input file's absolute path.
+            line_num (int): Line number to start at. NOTE: Zero-based numbering.
+            fix_floats (bool): Correct leading zeros floating points since the CR10X does not output leading zeros.
+
+        Returns:
+            All data found from the given line number onwards.
+
+        """
+        data = [row for row in self._read_data(infile_path=infile_path, headers=headers, header_row=header_row, line_num=line_num)]
+
+        if convert_time:
+            data = self.convert_time(data=data, time_parsed_column=time_parsed_column,
+                                     time_columns=time_columns, to_utc=to_utc)
+        return data
+
+
+class CR10XParser(CampbellSCILoggerParser):
+    """Parses and exports data files collected by Campbell Scientific CR10X data loggers. """
+
+    def __init__(self, time_zone='UTC', time_format_args_library=None):
+        if not time_format_args_library:
+            time_format_args_library = ['%Y', '%j', 'Hour/Minute']
+
+        super().__init__(time_zone, time_format_args_library)
 
     @staticmethod
-    def export_array_ids_to_csv(data, array_ids_info, match_num_of_columns=True, output_mismatched_columns=False,
-                                mode='a', include_time_zone=False):
+    def _parse_hourminute(hour_minute_str):
+        """Parses the CR10X time format column 'Hour/Minute'.
+
+        Args:
+            hour_minute_str (string): Hour/Minute string to be parsed.
+        Returns:
+            The time parsed in the format HH:MM.
+
+        """
+        hour = 0
+        parsed_time_format = "%H:%M"
+        parsed_time = ""
+        parsing_info = namedtuple('ParsedHourMinInfo', ['parsed_time_format', 'parsed_time'])
+
+        if len(hour_minute_str) == 1:            # 0 - 9
+            minute = hour_minute_str
+            parsed_time = "00:0" + minute
+        elif len(hour_minute_str) == 2:           # 10 - 59
+            minute = hour_minute_str[-2:]
+            parsed_time = "00:" + minute
+        elif len(hour_minute_str) == 3:          # 100 - 959
+            hour = hour_minute_str[:1]
+            minute = hour_minute_str[-2:]
+            parsed_time = "0" + hour + ":" + minute
+        elif len(hour_minute_str) == 4:          # 1000 - 2359
+            hour = hour_minute_str[:2]
+            minute = hour_minute_str[-2:]
+            parsed_time = hour + ":" + minute
+        else:
+            raise ValueError("Hour/Minute {0} could not be parsed!".format(hour_minute_str))
+
+        return parsing_info(parsed_time_format, parsed_time)
+
+    def _parse_custom_format(self, *timevalues):
+        """Parses the custom time format CR10X.
+        Args:
+            timeargs (string): Time strings to be parsed.
+        Returns:
+            Parsed time format string representation and value.
+
+        """
+        time_values = list(timevalues)
+        if len(time_values) > 3:
+            raise UnsupportedTimeFormatError(
+                "CR10XTimeParser only supports Year, Day, Hour/Minute, got {0} time values".format(len(time_values)))
+        found_time_format_args = []
+        parsing_info = namedtuple('ParsedTimeInfo', ['parsed_time_format', 'parsed_time'])
+
+        for i, value in enumerate(time_values):
+            found_time_format_args.append(self.time_format_args_library[i])
+            if i == 2:     # Time string "Hour/Minute" reached
+                parsed_time_format, parsed_time = self._parse_hourminute(value)
+                found_time_format_args[2] = parsed_time_format
+                time_values[2] = parsed_time
+
+        time_format_str = ','.join(found_time_format_args)
+        time_values_str = ','.join(time_values)
+
+        return parsing_info(time_format_str, time_values_str)
+
+    @staticmethod
+    def _process_mixed_rows(infile_path, line_num=0, fix_floats=True):
+        """Helper method for _read_data.
+
+        Args:
+            infile_path (str): Input file's absolute path.
+            line_num (int): Line number to start at. NOTE: Zero-based numbering.
+            fix_floats (bool): Correct leading zeros floating points since the CR10X does not output leading zeros.
+
+        Returns:
+            Each processed row, one at a time.
+
+        """
+        with open(infile_path, 'r') as f:
+            rows = csv.reader(f)
+            replacements = {'.': '0.', '-.': '-0.'}    # Patterns to look for
+            for row in rows:
+                if line_num <= (rows.line_num - 1):   # Correct reader for zero-based numbering
+                    if fix_floats:
+                        for i, value in enumerate(row):
+                            for source, replacement in replacements.items():
+                                if value.startswith(source):
+                                    row[i] = value.replace(source, replacement)
+
+                    yield OrderedDict([(i, value) for i, value in enumerate(row)])
+
+    @staticmethod
+    def _read_mixed_data(infile_path, line_num=0, fix_floats=True):
+        """Produces a generator object of data read from given file input starting from a given line number.
+
+        Args:
+            infile_path (str): Input file's absolute path.
+            line_num (int): Line number to start at. NOTE: Zero-based numbering.
+            fix_floats (bool): Correct leading zeros floating points since the CR10X does not output leading zeros.
+
+        Returns:
+            Each processed row, one at a time.
+
+        """
+        for row in CR10XParser._process_mixed_rows(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats):
+            yield row
+
+    def export_array_ids_to_csv(self, data, array_ids_info, export_headers=False, mode='a', include_time_zone=False):
         """Export array ids data as separate comma-separated values files.
 
         Args:
@@ -272,7 +432,7 @@ class CR10X(object):
         if len(array_ids_info) < 1:
             raise ArrayIdsInfoError("At least one array id must be given!")
 
-        data_filtered = CR10X.filter_data_by_array_ids(*array_ids_info.keys(), data=data)
+        data_filtered = self.filter_data_by_array_ids(*array_ids_info.keys(), data=data)
 
         for array_id, array_id_data in data_filtered.items():
             export_info = array_ids_info.get(array_id)
@@ -281,10 +441,9 @@ class CR10X(object):
             file_path = export_info.get('file_path')
             if not file_path:
                 raise ArrayIdsFilePathError("Not file path was found for array id {0}".format(array_id))
-            headers = export_info.get('headers')
-            CR10X.export_to_csv(array_id_data, file_path, headers, match_num_of_columns=match_num_of_columns,
-                                output_mismatched_columns=output_mismatched_columns, mode=mode,
-                                include_time_zone=include_time_zone)
+
+            super().export_to_csv(data=array_id_data, outfile_path=file_path, export_headers=export_headers, mode=mode,
+                                  include_time_zone=include_time_zone)
 
     @staticmethod
     def filter_data_by_array_ids(*array_ids, data):
@@ -308,11 +467,12 @@ class CR10X(object):
                 if array_id in array_ids:
                     data_filtered[array_id] = array_id_data
         elif isinstance(data, list):
-            for row in CR10X._data_generator(data):
+            for row in super()._data_generator(data):
+                array_id_name = list(row.keys())[0]
                 if not array_ids:
-                    data_filtered[row[0]].append(row)   # Append to unfiltered data set, but split by array ids.
+                    data_filtered[row[array_id_name]].append(row)   # Append to unfiltered data set, but split by array ids.
                 else:
-                    if row[0] in array_ids:
+                    if array_id_name in array_ids:
                         data_filtered[row[0]].append(row)
         else:
             raise TypeError("Data collection of type {0} not supported. Valid collection types are dict and list.")
@@ -336,8 +496,8 @@ class CR10X(object):
         if not array_ids_info:
             array_ids_info = {}
         array_ids = [key for key in array_ids_info.keys()]
-        data_mixed = CR10X.read_mixed_data(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats)
-        data_by_array_ids = CR10X.filter_data_by_array_ids(*array_ids, data=data_mixed)
+        data_mixed = CR10XParser.read_mixed_data(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats)
+        data_by_array_ids = CR10XParser.filter_data_by_array_ids(*array_ids, data=data_mixed)
         for array_id, array_name in array_ids_info.items():
             if array_id in data_by_array_ids:
                 if array_name:
@@ -358,4 +518,19 @@ class CR10X(object):
             All data found from the given line number onwards.
 
         """
-        return [row for row in CR10X._read_data(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats)]
+        return [row for row in CR10XParser._read_mixed_data(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats)]
+
+
+class CR1000Parser(CampbellSCILoggerParser):
+    """Parses and exports data files collected by Campbell Scientific CR1000 data loggers. """
+
+    def __init__(self, time_zone='UTC', time_format_args_library=None):
+        if not time_format_args_library:
+            time_format_args_library = ['%Y-%m-%d %H:%M:%S']
+
+        super().__init__(time_zone, time_format_args_library)
+
+    def _parse_custom_format(self, *timevalues):
+        parsing_info = namedtuple('ParsedTimeInfo', ['parsed_time_format', 'parsed_time'])
+
+        return parsing_info(self.time_format_args_library[0], timevalues[0])
