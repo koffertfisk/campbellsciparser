@@ -1,7 +1,7 @@
 #!/usr/bin/env
 # -*- coding: utf-8 -*-
 
-"""Module for parsing and exporting comma-separated data collected by Campbell Scientific data loggers. """
+"""Module for parsing and exporting data collected by Campbell Scientific data loggers. """
 
 import csv
 import os
@@ -14,7 +14,6 @@ from datetime import datetime
 
 
 class TimeConversionException(Exception):
-    """Base class for exceptions in this module"""
     pass
 
 
@@ -52,10 +51,10 @@ class CampbellSCILoggerParser(object):
     """Base class for parsing and exporting data collected by Campbell Scientific data loggers. """
 
     def __init__(self, time_zone, time_format_args_library):
-        """Initializes the data logger parser with time arguments (needed for time parsing and conversion).
+        """Initializes the data logger parser with time arguments (needed for time parsing and time conversion).
 
         Args:
-            time_zone (string): Data pytz time zone, used for localization. See pytz docs for reference.
+            time_zone (str): Data pytz time zone, used for localization. See pytz docs for reference.
             time_format_args_library (list): List of expected time string representations.
 
         """
@@ -64,10 +63,10 @@ class CampbellSCILoggerParser(object):
 
     @staticmethod
     def _data_generator(data):
-        """Turns data set (list) into a generator.
+        """Turns data set (list of ordered dictionaries) into a generator.
 
         Args:
-            data (list*OrderedDict): Data set (list of rows) to process.
+            data (list(OrderedDict)): Data set (list of ordered dictionaries) to process.
 
         Returns:
             Each row, one at a time.
@@ -78,7 +77,7 @@ class CampbellSCILoggerParser(object):
 
     @staticmethod
     def _datetime_to_str_no_time_zone(dt):
-        """Produces a string representation from a datetime object, omitting time zone information.
+        """Produces a string representation from a datetime object without time zone information.
 
         Args:
             dt (datetime): Datetime to process.
@@ -92,8 +91,8 @@ class CampbellSCILoggerParser(object):
     @staticmethod
     def _find_first_time_column_key(headers, time_columns):
         """
-        Search for the first time representation column within the headers. Used for inserting the parsed time
-        column on the found position.
+            Search for the first time representation column within the headers. Used for inserting the parsed time
+            column at the found position.
 
         Args:
             headers (list): List of data file headers or indices.
@@ -112,8 +111,17 @@ class CampbellSCILoggerParser(object):
         else:
             raise TimeColumnValueError("First time column '{0}' not found in headers!".format(time_columns[0]))
 
-    def _parse_custom_format(self, *args):
-        parsing_info = namedtuple('ParsedHourMinInfo', ['parsed_time_format', 'parsed_time'])
+    def _parse_custom_time_format(self, *args):
+        """Base method for parsing Campbell data logger specific time formats.
+
+        Args:
+            *args (str): Time strings to be parsed.
+
+        Returns:
+            Parsed time string format representation and its parsed value.
+
+        """
+        parsing_info = namedtuple('ParsedCustomTimeInfo', ['parsed_time_format', 'parsed_time'])
 
         return parsing_info("", "")
 
@@ -123,10 +131,12 @@ class CampbellSCILoggerParser(object):
 
         Args:
             infile_path (str): Input file's absolute path.
+            headers (list): Headers to map to each rows' values.
+            header_row (int): Input file's header row to map to each rows' values.
             line_num (int): Line number to start at. NOTE: Zero-based numbering.
 
         Returns:
-            Each processed row, one at a time.
+            Each processed row represented as an OrderedDict, returned one at a time.
 
         """
         with open(infile_path, 'r') as f:
@@ -146,30 +156,32 @@ class CampbellSCILoggerParser(object):
                     if line_num <= (rows.line_num - 1):
                         yield OrderedDict([(i, value) for i, value in enumerate(row)])
 
-    def _read_data(self, infile_path, headers=None, header_row=None, line_num=0):
-        """
-        Produces a generator object of data read from given file input starting from a given line number.
+    @staticmethod
+    def _read_data(infile_path, headers=None, header_row=None, line_num=0):
+        """Produces a generator object of data read from given file input starting from a given line number.
 
         Args:
             infile_path (str): Input file's absolute path.
+            headers (list): Headers to map to each rows' values.
+            header_row (int): Input file's header row to map to each rows' values.
             line_num (int): Line number to start at. NOTE: Zero-based numbering.
 
         Returns:
             Each processed row, one at a time.
 
         """
-        for row in self._process_rows(infile_path, headers=headers, header_row=header_row, line_num=line_num):
+        for row in CampbellSCILoggerParser._process_rows(infile_path, headers=headers, header_row=header_row, line_num=line_num):
             yield row
 
     def _row_str_conversion(self, row, include_time_zone=False):
-        """Produces a generator object for the values in a row, converted to strings.
+        """Produces a list for the values in a row, converted to strings.
 
         Args:
             row (OrderedDict): List of values read from a row.
             include_time_zone (bool): Include time zone in string converted datetime objects.
 
         Returns:
-            String representation of each value.
+            String representations for each value.
 
         """
         for key, value in row.items():
@@ -184,14 +196,13 @@ class CampbellSCILoggerParser(object):
         """Converts specific time columns from a data set into a single timestamp column.
 
         Args:
-             data (list*OrderedDict): Data set to convert.
-             headers (list): Column headers to match time columns against. If not given, use each rows' index instead.
-             time_parsed_column (str): Converted time column name.
-             time_columns (list): Column(s) to use for time conversion.
+             data (list(OrderedDict)): Data set to convert.
+             time_parsed_column (str): Converted time column name. If not given, use index names.
+             time_columns (list): Column(s) (names or indices) to use for time converting.
              to_utc (bool): Convert time to UTC.
 
         Returns:
-            The updated headers and converted data set.
+            Time converted data set.
 
         Raises:
             TimeColumnValueError: If not at least one time column is given.
@@ -205,7 +216,7 @@ class CampbellSCILoggerParser(object):
         for row in self._data_generator(data):
             first_time_column_key = self._find_first_time_column_key(list(row.keys()), time_columns)
             row_time_column_values = [value for key, value in row.items() if key in time_columns]
-            row_time_converted = self.parse_time(*row_time_column_values, to_utc=to_utc)
+            row_time_converted = self.parse_time_values(*row_time_column_values, to_utc=to_utc)
 
             old_key = first_time_column_key
             new_key = old_key
@@ -227,16 +238,11 @@ class CampbellSCILoggerParser(object):
         """Export data as a comma-separated values file.
 
         Args:
-            data (list): Data set to export.
+            data (list(OrderedDict)): Data set to export.
             outfile_path (str): Output file's absolute path.
-            headers (list): File headers to write at the top of the output file.
-            match_num_of_columns (bool): Match number of header columns to number of the rows' columns.
-            output_mismatched_columns (bool): Output mismatched columns (with respect to header length).
+            export_headers (bool): Write file headers at the top of the output file.
             mode (str): Output file open mode, defaults to append. See Python Docs for other mode options.
-            include_time_zone (bool): Include time zone in string converted datetime objects.
-
-        Raises:
-            DataTypeError: If data is not a list.
+            include_time_zone (bool): Include time zone in string converted datetime values.
 
         """
         os.makedirs(os.path.dirname(outfile_path), exist_ok=True)
@@ -255,12 +261,18 @@ class CampbellSCILoggerParser(object):
                     export_headers = False
                 f_out.write((",".join(self._row_str_conversion(row, include_time_zone)) + "\n"))
 
-    def parse_time(self, *args, to_utc=False):
-        """Converts the given raw data time format to a datetime object (local time zone -> UTC).
+    def parse_time_values(self, *args, to_utc=False):
+        """Base method for converting Campbell data logger specific time representations to a datetime object.
+
         Args:
-            args (string): Time strings to be parsed.
+            *args (str): Time strings to be parsed.
+            to_utc (bool): Convert to UTC.
+
+        Returns:
+            Timestamp converted time.
+
         """
-        parsed_time_format, parsed_time = self._parse_custom_format(*args)
+        parsed_time_format, parsed_time = self._parse_custom_time_format(*args)
 
         try:
             t = time.strptime(parsed_time, parsed_time_format)
@@ -279,13 +291,18 @@ class CampbellSCILoggerParser(object):
         return parsed_dt
 
     def read_data(self, infile_path, headers=None, header_row=None, line_num=0, convert_time=False,
-                  time_parsed_column="Timestamp", time_columns=None, to_utc=False):
+                  time_parsed_column=None, time_columns=None, to_utc=False):
         """Parses data from a given file without filtering.
 
         Args:
             infile_path (str): Input file's absolute path.
+            headers (list): Headers to map to each rows' values.
+            header_row (int): Input file's header row to map to each rows' values.
             line_num (int): Line number to start at. NOTE: Zero-based numbering.
-            fix_floats (bool): Correct leading zeros floating points since the CR10X does not output leading zeros.
+            convert_time (bool): Convert Campbell data logger specific time representations to timestamp.
+            time_parsed_column (str): Converted time column name. If not given, use index names.
+            time_columns (list): Column(s) (names or indices) to use for time converting.
+            to_utc (bool): Convert time to UTC.
 
         Returns:
             All data found from the given line number onwards.
@@ -303,6 +320,13 @@ class CR10XParser(CampbellSCILoggerParser):
     """Parses and exports data files collected by Campbell Scientific CR10X data loggers. """
 
     def __init__(self, time_zone='UTC', time_format_args_library=None):
+        """Initializes the data logger parser with time arguments for the CR10X model.
+
+        Args:
+            time_zone (str): Data pytz time zone, used for localization. See pytz docs for reference.
+            time_format_args_library (list): List of expected time string representations.
+
+        """
         if not time_format_args_library:
             time_format_args_library = ['%Y', '%j', 'Hour/Minute']
 
@@ -310,10 +334,11 @@ class CR10XParser(CampbellSCILoggerParser):
 
     @staticmethod
     def _parse_hourminute(hour_minute_str):
-        """Parses the CR10X time format column 'Hour/Minute'.
+        """Parses the CR10X custom time format column 'Hour/Minute'.
 
         Args:
-            hour_minute_str (string): Hour/Minute string to be parsed.
+            hour_minute_str (str): Hour/Minute string to be parsed.
+
         Returns:
             The time parsed in the format HH:MM.
 
@@ -342,18 +367,23 @@ class CR10XParser(CampbellSCILoggerParser):
 
         return parsing_info(parsed_time_format, parsed_time)
 
-    def _parse_custom_format(self, *timevalues):
-        """Parses the custom time format CR10X.
+    def _parse_custom_time_format(self, *timevalues):
+        """Parses the CR10X custom time format.
+
         Args:
-            timeargs (string): Time strings to be parsed.
+            *timevalues (str): Time strings to be parsed.
+
         Returns:
             Parsed time format string representation and value.
+
+        Raises:
+            UnsupportedTimeFormatError: If more than three arguments is being passed.
 
         """
         time_values = list(timevalues)
         if len(time_values) > 3:
             raise UnsupportedTimeFormatError(
-                "CR10XTimeParser only supports Year, Day, Hour/Minute, got {0} time values".format(len(time_values)))
+                "The CR10X time parser only supports Year, Day, Hour/Minute, got {0} time values".format(len(time_values)))
         found_time_format_args = []
         parsing_info = namedtuple('ParsedTimeInfo', ['parsed_time_format', 'parsed_time'])
 
@@ -379,7 +409,7 @@ class CR10XParser(CampbellSCILoggerParser):
             fix_floats (bool): Correct leading zeros floating points since the CR10X does not output leading zeros.
 
         Returns:
-            Each processed row, one at a time.
+            Each processed row represented as an OrderedDict, returned one at a time.
 
         """
         with open(infile_path, 'r') as f:
@@ -415,12 +445,11 @@ class CR10XParser(CampbellSCILoggerParser):
         """Export array ids data as separate comma-separated values files.
 
         Args:
-            data (dict(list)): Array id separated data.
+            data (dict(list(OrderedDict))): Array id separated data.
             array_ids_info (dict(dict)): Array ids to export. Contains output file paths and file headers.
-            match_num_of_columns (bool): Match number of header columns to number of the rows' columns.
-            output_mismatched_columns (bool): Output mismatched columns (with respect to header length).
+            export_headers (bool): Write file headers at the top of the output file.
             mode (str): Output file open mode, defaults to append. See Python Docs for other mode options.
-            include_time_zone (bool): Include time zone in string converted datetime objects.
+            include_time_zone (bool): Include time zone in string converted datetime values.
 
         Raises:
             ArrayIdsInfoError: If not at least one array id in array_ids_info is found.
@@ -450,11 +479,14 @@ class CR10XParser(CampbellSCILoggerParser):
 
         Args:
             *array_ids: Array ids to filter by. If no arguments are given, return unfiltered data set.
-            data (dict(list), list): Array id separated or mixed data.
+            data (dict(list(OrderedDict)), list): Array id separated or mixed data.
 
         Returns:
             Filtered data set if array ids are given, unfiltered otherwise. If a mixed data set is given, return
             unfiltered data set split by its array ids.
+
+        Raises:
+            DataTypeError: if anything else than list or dictionary data is given.
 
         """
         data_filtered = defaultdict(list)
@@ -477,7 +509,7 @@ class CR10XParser(CampbellSCILoggerParser):
                     if array_id_name in array_ids:
                         data_filtered[array_id_name].append(row)
         else:
-            raise TypeError("Data collection of type {0} not supported. Valid collection types are dict and list.")
+            raise DataTypeError("Data collection of type {0} not supported. Valid collection types are dict and list.")
 
         return data_filtered
 
@@ -528,12 +560,31 @@ class CR1000Parser(CampbellSCILoggerParser):
     """Parses and exports data files collected by Campbell Scientific CR1000 data loggers. """
 
     def __init__(self, time_zone='UTC', time_format_args_library=None):
+        """Initializes the data logger parser with time arguments for the CR1000 model.
+
+        Args:
+            time_zone (str): Data pytz time zone, used for localization. See pytz docs for reference.
+            time_format_args_library (list): List of expected time string representations.
+
+        """
         if not time_format_args_library:
             time_format_args_library = ['%Y-%m-%d %H:%M:%S']
 
         super().__init__(time_zone, time_format_args_library)
 
-    def _parse_custom_format(self, *timevalues):
+    def _parse_custom_time_format(self, *timevalues):
+        """Parses the CR1000 custom time format.
+
+        Args:
+            *timevalues (str): Time strings to be parsed.
+
+        Returns:
+            Parsed time format string representation and value.
+
+        Raises:
+            IndexError: If the time format arguments library is empty or no time value is given.
+
+        """
         parsing_info = namedtuple('ParsedTimeInfo', ['parsed_time_format', 'parsed_time'])
 
         return parsing_info(self.time_format_args_library[0], timevalues[0])

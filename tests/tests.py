@@ -290,7 +290,7 @@ class ConvertTimeTest(ReadDataTestCase):
         parsed_time_expected = datetime(2016, 1, 30, 22, 30, 0, tzinfo=pytz.UTC)
 
         cr10x = device.CR10XParser(time_zone)
-        parsed_time = cr10x.parse_time(*[year, day, hour_minute], to_utc=False)
+        parsed_time = cr10x.parse_time_values(*[year, day, hour_minute], to_utc=False)
 
         self.assertEqual(parsed_time, parsed_time_expected)
 
@@ -302,7 +302,7 @@ class ConvertTimeTest(ReadDataTestCase):
         parsed_time_expected = datetime(2016, 1, 30, 21, 30, 0, tzinfo=pytz.UTC)
 
         cr10x = device.CR10XParser(time_zone)
-        parsed_time = cr10x.parse_time(*[year, day, hour_minute], to_utc=True)
+        parsed_time = cr10x.parse_time_values(*[year, day, hour_minute], to_utc=True)
 
         self.assertEqual(parsed_time, parsed_time_expected)
 
