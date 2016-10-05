@@ -50,7 +50,7 @@ class ArrayIdsFilePathError(ArrayIdsInfoError):
 class CampbellSCILoggerParser(object):
     """Base class for parsing and exporting data collected by Campbell Scientific data loggers. """
 
-    def __init__(self, time_zone, time_format_args_library):
+    def __init__(self, time_zone, time_format_args_library=None):
         """Initializes the data logger parser with time arguments (needed for time parsing and time conversion).
 
         Args:
@@ -314,6 +314,24 @@ class CampbellSCILoggerParser(object):
             data = self.convert_time(data=data, time_parsed_column=time_parsed_column,
                                      time_columns=time_columns, to_utc=to_utc)
         return data
+
+    @staticmethod
+    def update_headers(data, headers, output_mismatched_rows=False):
+
+        data_headers_updated = []
+        data_headers_length_mismatched = []
+
+        for row in CampbellSCILoggerParser._data_generator(data):
+            if len(headers) == len(row.values()):
+                data_headers_updated.append(OrderedDict([(name, value) for name, value in zip(headers, row.values())]))
+            else:
+                if output_mismatched_rows:
+                    data_headers_length_mismatched.append(row)
+
+        if output_mismatched_rows:
+            return data_headers_updated, data_headers_length_mismatched
+
+        return data_headers_updated
 
 
 class CR10XParser(CampbellSCILoggerParser):

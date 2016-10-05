@@ -279,6 +279,27 @@ class ExportDataTest(ReadArrayIdsDataTestCase):
         self.assertListEqual(data_split_filtered_203_headers, data_exported_file_2_headers)
         self.delete_output(output_file_1)
 
+    def test_export_array_ids_to_csv_updated_headers(self):
+        file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
+        output_file = os.path.join(THIS_DIR, 'testoutput/test.dat')
+        cr10x = device.CR10XParser()
+
+        data_split_unfiltered = cr10x.read_array_ids_data(infile_path=file)
+        data_split_filtered = cr10x.filter_data_by_array_ids('203', data=data_split_unfiltered)
+        data_split_array_id_filtered = data_split_filtered.get('203')
+
+        headers = ['Array_Id', 'Year', 'Day', 'Hour/Minute', 'Wind_Speed', 'Wind_Direction']
+        data_headers_updated = cr10x.update_headers(data=data_split_array_id_filtered, headers=headers)
+        array_ids_info = {'203': {'file_path': output_file}}
+        cr10x.export_array_ids_to_csv(data=data_headers_updated, array_ids_info=array_ids_info, export_headers=True)
+
+        data_exported_file = cr10x.read_mixed_data(infile_path=output_file)
+        data_headers_updated_first_row = data_exported_file[0]
+        data_headers_updated_headers = [value for value in data_headers_updated_first_row.values()]
+
+        self.assertListEqual(headers, data_headers_updated_headers)
+        self.delete_output(output_file)
+
 
 class ConvertTimeTest(ReadDataTestCase):
 
@@ -373,3 +394,23 @@ class ConvertTimeTest(ReadDataTestCase):
 
         self.assertEqual(expected_datetime_string, exported_datetime_string)
         self.delete_output(output_file)
+
+
+class HeadersTest(ReadArrayIdsDataTestCase):
+
+    def test_update_headers(self):
+        file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
+        cr10x = device.CR10XParser()
+        headers = ['Array_Id', 'Year', 'Day', 'Hour/Minute', 'Wind_Speed', 'Wind_Direction']
+
+        data_split_unfiltered = cr10x.read_array_ids_data(infile_path=file)
+        data_split_filtered = cr10x.filter_data_by_array_ids('203', data=data_split_unfiltered)
+        data_split_array_id_filtered = data_split_filtered.get('203')
+
+        data_headers_updated = cr10x.update_headers(data=data_split_array_id_filtered, headers=headers)
+        data_headers_updated_first_row = data_headers_updated[0]
+        data_headers_updated_headers = [key for key in data_headers_updated_first_row.keys()]
+
+        self.assertListEqual(headers, data_headers_updated_headers)
+
+    #def test_update_headers_output_mismatched_rows(self):
