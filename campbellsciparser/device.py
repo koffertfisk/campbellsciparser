@@ -172,14 +172,13 @@ class CampbellSCILoggerParser(object):
             String representation of each value.
 
         """
-
         for key, value in row.items():
             if not include_time_zone and isinstance(value, datetime):
                 row[key] = self._datetime_to_str_no_time_zone(value)
             else:
                 row[key] = str(value)
 
-        return row
+        return row.values()
 
     def convert_time(self, data, time_parsed_column=None, time_columns=None, to_utc=False):
         """Converts specific time columns from a data set into a single timestamp column.
@@ -240,7 +239,6 @@ class CampbellSCILoggerParser(object):
             DataTypeError: If data is not a list.
 
         """
-
         os.makedirs(os.path.dirname(outfile_path), exist_ok=True)
 
         if os.path.exists(outfile_path) and export_headers:
@@ -250,9 +248,10 @@ class CampbellSCILoggerParser(object):
                 export_headers = False
 
         with open(outfile_path, mode) as f_out:
-            for row in self._data_generator(data):
+            for row in CampbellSCILoggerParser._data_generator(data):
                 if export_headers:
-                    f_out.write(",".join(list(row.keys())) + "\n")
+                    headers = [str(key) for key in row.keys()]
+                    f_out.write(",".join(headers) + "\n")
                     export_headers = False
                 f_out.write((",".join(self._row_str_conversion(row, include_time_zone)) + "\n"))
 
@@ -467,13 +466,16 @@ class CR10XParser(CampbellSCILoggerParser):
                 if array_id in array_ids:
                     data_filtered[array_id] = array_id_data
         elif isinstance(data, list):
-            for row in super()._data_generator(data):
-                array_id_name = list(row.keys())[0]
+            for row in CampbellSCILoggerParser._data_generator(data):
+                try:
+                    array_id_name = list(row.values())[0]
+                except IndexError:
+                    continue
                 if not array_ids:
-                    data_filtered[row[array_id_name]].append(row)   # Append to unfiltered data set, but split by array ids.
+                    data_filtered[array_id_name].append(row)   # Append to unfiltered data set, but split by array ids.
                 else:
                     if array_id_name in array_ids:
-                        data_filtered[row[0]].append(row)
+                        data_filtered[array_id_name].append(row)
         else:
             raise TypeError("Data collection of type {0} not supported. Valid collection types are dict and list.")
 
@@ -498,6 +500,7 @@ class CR10XParser(CampbellSCILoggerParser):
         array_ids = [key for key in array_ids_info.keys()]
         data_mixed = CR10XParser.read_mixed_data(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats)
         data_by_array_ids = CR10XParser.filter_data_by_array_ids(*array_ids, data=data_mixed)
+
         for array_id, array_name in array_ids_info.items():
             if array_id in data_by_array_ids:
                 if array_name:

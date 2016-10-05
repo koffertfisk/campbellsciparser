@@ -12,7 +12,7 @@ import pytz
 
 from datetime import datetime
 
-from campbellsciparser import device, timeparser
+from campbellsciparser import device
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -25,7 +25,7 @@ class ReadDataTestCase(unittest.TestCase):
     def assertFloatingPointsFixed(self, data_no_fp_fix, data_fp_fixed, replacements_lib):
         unprocessed = []
         for row_no_fp_fix, row_fp_fix in zip(data_no_fp_fix, data_fp_fixed):
-            for value_no_fix, value_fix in zip(row_no_fp_fix, row_fp_fix):
+            for value_no_fix, value_fix in zip(list(row_no_fp_fix.values()), list(row_fp_fix.values())):
                 for source, replacement in replacements_lib.items():
                     if value_no_fix.startswith(source) and not value_fix.startswith(replacement):
                         unprocessed.append(value_no_fix)
@@ -47,9 +47,14 @@ class ReadArrayIdsDataTestCase(ReadDataTestCase):
         self.assertEqual(len(data_1), len(data_2))
 
     def assertDataContentEqual(self, data_1, data_2):
-        data_1_diff_elements = [row for row in data_1 if row not in data_2]
+
+        data_1_list = [list(row.values()) for row in data_1]
+        data_2_list = [list(row.values()) for row in data_2]
+
+        data_1_diff_elements = [row for row in data_1_list if row not in data_2_list]
+        data_2_diff_elements = [row for row in data_2_list if row not in data_1_list]
+
         ReadDataTestCase.assertDataLengthEqual(self, data_1_diff_elements, 0)
-        data_2_diff_elements = [row for row in data_2 if row not in data_1]
         ReadDataTestCase.assertDataLengthEqual(self, data_2_diff_elements, 0)
 
 
@@ -57,26 +62,30 @@ class ReadMixedDataTest(ReadDataTestCase):
 
     def test_length_empty(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_empty.dat')
-        data = device.CR10X.read_mixed_data(infile_path=file)
+        cr10x = device.CR10XParser()
+        data = cr10x.read_mixed_data(infile_path=file)
 
         self.assertDataLengthEqual(data=data, data_length=0)
 
     def test_length_ten_rows(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
-        data = device.CR10X.read_mixed_data(infile_path=file)
+        cr10x = device.CR10XParser()
+        data = cr10x.read_mixed_data(infile_path=file)
 
         self.assertDataLengthEqual(data=data, data_length=10)
 
     def test_length_line_num_five_rows(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
-        data = device.CR10X.read_mixed_data(infile_path=file, line_num=5)
+        cr10x = device.CR10XParser()
+        data = cr10x.read_mixed_data(infile_path=file, line_num=5)
 
         self.assertDataLengthEqual(data=data, data_length=5)
 
     def test_fix_floating_points(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
-        data_no_fp_fix = device.CR10X.read_mixed_data(infile_path=file, fix_floats=False)
-        data_fp_fixed = device.CR10X.read_mixed_data(infile_path=file, fix_floats=True)
+        cr10x = device.CR10XParser()
+        data_no_fp_fix = cr10x.read_mixed_data(infile_path=file, fix_floats=False)
+        data_fp_fixed = cr10x.read_mixed_data(infile_path=file, fix_floats=True)
         replacements = {'.': '0.', '-.': '-0.'}
 
         self.assertFloatingPointsFixed(data_no_fp_fix=data_no_fp_fix, data_fp_fixed=data_fp_fixed, replacements_lib=replacements)
@@ -86,29 +95,33 @@ class ReadArrayIdsDataTest(ReadArrayIdsDataTestCase):
 
     def test_empty(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_empty.dat')
-        data = device.CR10X.read_array_ids_data(infile_path=file)
+        cr10x = device.CR10XParser()
+        data = cr10x.read_array_ids_data(infile_path=file)
 
         ReadDataTestCase.assertDataLengthEqual(self, data=data, data_length=0)
 
     def test_length_ten_rows(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
-        data = device.CR10X.read_array_ids_data(infile_path=file)
+        cr10x = device.CR10XParser()
+        data = cr10x.read_array_ids_data(infile_path=file)
         data_mixed = [row for array_id, array_id_data in data.items() for row in array_id_data]
 
         ReadDataTestCase.assertDataLengthEqual(self, data=data_mixed, data_length=10)
 
     def test_compare_length_ten_rows(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
-        data_mixed = device.CR10X.read_mixed_data(infile_path=file)
-        data_split = device.CR10X.read_array_ids_data(infile_path=file)
+        cr10x = device.CR10XParser()
+        data_mixed = cr10x.read_mixed_data(infile_path=file)
+        data_split = cr10x.read_array_ids_data(infile_path=file)
         data_split_merged = [row for array_id, array_id_data in data_split.items() for row in array_id_data]
 
         ReadArrayIdsDataTestCase.assertDataLengthEqual(self, data_1=data_mixed, data_2=data_split_merged)
 
     def test_compare_data_ten_rows(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
-        data_mixed = device.CR10X.read_mixed_data(infile_path=file)
-        data_split = device.CR10X.read_array_ids_data(infile_path=file)
+        cr10x = device.CR10XParser()
+        data_mixed = cr10x.read_mixed_data(infile_path=file)
+        data_split = cr10x.read_array_ids_data(infile_path=file)
         data_split_merged = [row for array_id, array_id_data in data_split.items() for row in array_id_data]
 
         self.assertDataContentEqual(data_1=data_mixed, data_2=data_split_merged)
@@ -116,8 +129,9 @@ class ReadArrayIdsDataTest(ReadArrayIdsDataTestCase):
     def test_compare_data_ten_rows_lookup(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
         array_ids_info = {'201': 'label_1', '203': 'label_2', '204': 'label_3', '210': 'label_4'}
-        data_mixed = device.CR10X.read_mixed_data(infile_path=file)
-        data_split_translated = device.CR10X.read_array_ids_data(infile_path=file, array_ids_info=array_ids_info)
+        cr10x = device.CR10XParser()
+        data_mixed = cr10x.read_mixed_data(infile_path=file)
+        data_split_translated = cr10x.read_array_ids_data(infile_path=file, array_ids_info=array_ids_info)
         data_split_translated_merged = [row for array_id, array_id_data in data_split_translated.items() for row in array_id_data]
 
         self.assertDataContentEqual(data_1=data_mixed, data_2=data_split_translated_merged)
@@ -127,18 +141,20 @@ class FilterDataTest(ReadArrayIdsDataTestCase):
 
     def test_filter_array_ids_data_no_filter(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
-        data_mixed = device.CR10X.read_mixed_data(infile_path=file)
-        data_split = device.CR10X.read_array_ids_data(infile_path=file)
-        data_filtered = device.CR10X.filter_data_by_array_ids(data=data_split)
+        cr10x = device.CR10XParser()
+        data_mixed = cr10x.read_mixed_data(infile_path=file)
+        data_split = cr10x.read_array_ids_data(infile_path=file)
+        data_filtered = cr10x.filter_data_by_array_ids(data=data_split)
         data_split_merged = [row for array_id, array_id_data in data_filtered.items() for row in array_id_data]
 
         self.assertDataContentEqual(data_1=data_mixed, data_2=data_split_merged)
 
     def test_filter_array_ids_data_filter_all(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
-        data_mixed = device.CR10X.read_mixed_data(infile_path=file)
-        data_split = device.CR10X.read_array_ids_data(infile_path=file)
-        data_split_filtered = device.CR10X.filter_data_by_array_ids('201', '203', '204', '210', data=data_split)
+        cr10x = device.CR10XParser()
+        data_mixed = cr10x.read_mixed_data(infile_path=file)
+        data_split = cr10x.read_array_ids_data(infile_path=file)
+        data_split_filtered = cr10x.filter_data_by_array_ids('201', '203', '204', '210', data=data_split)
         data_split_merged = [row for array_id, array_id_data in data_split_filtered.items() for row in array_id_data]
 
         self.assertDataContentEqual(data_1=data_mixed, data_2=data_split_merged)
@@ -146,9 +162,10 @@ class FilterDataTest(ReadArrayIdsDataTestCase):
     def test_filter_array_ids_data_filter(self):
         file_unfiltered = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
         file_filtered = os.path.join(THIS_DIR, 'testdata/csv_testdata_filtered_rows.dat')
-        data_pre_filtered = device.CR10X.read_mixed_data(infile_path=file_filtered)
-        data_split_unfiltered = device.CR10X.read_array_ids_data(infile_path=file_unfiltered)
-        data_split_filtered = device.CR10X.filter_data_by_array_ids('201', '203', data=data_split_unfiltered)
+        cr10x = device.CR10XParser()
+        data_pre_filtered = cr10x.read_mixed_data(infile_path=file_filtered)
+        data_split_unfiltered = cr10x.read_array_ids_data(infile_path=file_unfiltered)
+        data_split_filtered = cr10x.filter_data_by_array_ids('201', '203', data=data_split_unfiltered)
         data_split_filtered_merged = [row for array_id, array_id_data in data_split_filtered.items() for row in array_id_data]
 
         self.assertDataContentEqual(data_1=data_pre_filtered, data_2=data_split_filtered_merged)
@@ -159,64 +176,70 @@ class ExportDataTest(ReadArrayIdsDataTestCase):
     def test_export_to_csv_file_created(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
         output_file = os.path.join(THIS_DIR, 'testoutput/test.dat')
-        data_mixed = device.CR10X.read_mixed_data(infile_path=file)
-        device.CR10X.export_to_csv(data=data_mixed, outfile_path=output_file)
+        cr10x = device.CR10XParser()
+        data_mixed = cr10x.read_mixed_data(infile_path=file)
+        cr10x.export_to_csv(data=data_mixed, outfile_path=output_file)
 
         self.assertExportedFileExists(output_file)
 
     def test_export_to_csv_file_content(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
         output_file = os.path.join(THIS_DIR, 'testoutput/test.dat')
-        data_source_file_mixed = device.CR10X.read_mixed_data(infile_path=file)
-        device.CR10X.export_to_csv(data=data_source_file_mixed, outfile_path=output_file)
-        data_exported_file_mixed = device.CR10X.read_mixed_data(infile_path=output_file)
+        cr10x = device.CR10XParser()
+        data_source_file_mixed = cr10x.read_mixed_data(infile_path=file)
+        cr10x.export_to_csv(data=data_source_file_mixed, outfile_path=output_file)
+        data_exported_file_mixed = cr10x.read_mixed_data(infile_path=output_file)
 
         self.assertDataContentEqual(data_1=data_source_file_mixed, data_2=data_exported_file_mixed)
         self.delete_output(output_file)
 
-    def test_export_to_csv_file_header(self):
+    def test_export_to_csv_file_headers(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
         output_file = os.path.join(THIS_DIR, 'testoutput/test.dat')
-        data_source_file_mixed = device.CR10X.read_mixed_data(infile_path=file)
+        cr10x = device.CR10XParser()
+        data_source_file_mixed = cr10x.read_mixed_data(infile_path=file)
+        data_source_file_mixed_first_row = data_source_file_mixed[0]
+        data_source_file_mixed_headers = [str(key) for key in data_source_file_mixed_first_row.keys()]
 
-        headers = ["Array_Id","Year_RTM","Day_RTM","Hour_Minute_RTM","Tot_rad_AVG","Air_Temp2_AVG","Air_Temp1",
-                  "Humidity_AVG","Wind_spd_S_WVT","Wind_spd_U_WVT","Wind_dir_DU_WVT","Wind_dir_SDU_WVT",
-                  "Wind_spd3_AVG","BadTemp_AVG","PAR_AVG","Air_Pres_AVG"]
+        cr10x.export_to_csv(data=data_source_file_mixed, outfile_path=output_file, export_headers=True)
+        data_exported_file_mixed = cr10x.read_mixed_data(infile_path=output_file)
+        data_exported_file_headers_row = data_exported_file_mixed[0]
+        data_exported_file_headers = [value for value in data_exported_file_headers_row.values()]
 
-        device.CR10X.export_to_csv(data=data_source_file_mixed, outfile_path=output_file, headers=headers)
-        data_exported_file_mixed = device.CR10X.read_mixed_data(infile_path=output_file)
-        data_exported_file_header = data_exported_file_mixed[0]
-
-        self.assertDataContentEqual(data_1=headers, data_2=data_exported_file_header)
+        self.assertListEqual(data_source_file_mixed_headers, data_exported_file_headers)
         self.delete_output(output_file)
 
     def test_export_array_ids_to_csv_empty_library(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
-        data_split = device.CR10X.read_array_ids_data(infile_path=file)
+        cr10x = device.CR10XParser()
+        data_split = cr10x.read_array_ids_data(infile_path=file)
         with self.assertRaises(ValueError):
-            device.CR10X.export_array_ids_to_csv(data=data_split, array_ids_info={})
+            cr10x.export_array_ids_to_csv(data=data_split, array_ids_info={})
 
     def test_export_array_ids_to_csv_empty_info(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
-        data_split = device.CR10X.read_array_ids_data(infile_path=file)
+        cr10x = device.CR10XParser()
+        data_split = cr10x.read_array_ids_data(infile_path=file)
         with self.assertRaises(ValueError):
-            device.CR10X.export_array_ids_to_csv(data=data_split, array_ids_info={'201': None})
+            cr10x.export_array_ids_to_csv(data=data_split, array_ids_info={'201': None})
 
     def test_export_array_ids_to_csv_no_file_path(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
-        data_split = device.CR10X.read_array_ids_data(infile_path=file)
+        cr10x = device.CR10XParser()
+        data_split = cr10x.read_array_ids_data(infile_path=file)
         with self.assertRaises(ValueError):
-            device.CR10X.export_array_ids_to_csv(data=data_split, array_ids_info={'201': {'header': []}})
+            cr10x.export_array_ids_to_csv(data=data_split, array_ids_info={'201': {}})
 
     def test_export_array_ids_to_csv_content(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
         output_file = os.path.join(THIS_DIR, 'testoutput/test.dat')
-        data_split_unfiltered = device.CR10X.read_array_ids_data(infile_path=file)
-        data_split_filtered = device.CR10X.filter_data_by_array_ids('201', data=data_split_unfiltered)
+        cr10x = device.CR10XParser()
+        data_split_unfiltered = cr10x.read_array_ids_data(infile_path=file)
+        data_split_filtered = cr10x.filter_data_by_array_ids('201', data=data_split_unfiltered)
         data_split_array_id_filtered = data_split_filtered.get('201')
 
-        device.CR10X.export_array_ids_to_csv(data=data_split_unfiltered, array_ids_info={'201': {'file_path': output_file}})
-        data_exported_file = device.CR10X.read_mixed_data(infile_path=output_file)
+        cr10x.export_array_ids_to_csv(data=data_split_unfiltered, array_ids_info={'201': {'file_path': output_file}})
+        data_exported_file = cr10x.read_mixed_data(infile_path=output_file)
 
         self.assertDataContentEqual(data_1=data_split_array_id_filtered, data_2=data_exported_file)
         self.delete_output(output_file)
@@ -225,25 +248,35 @@ class ExportDataTest(ReadArrayIdsDataTestCase):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
         output_file_1 = os.path.join(THIS_DIR, 'testoutput/test_1.dat')
         output_file_2 = os.path.join(THIS_DIR, 'testoutput/test_2.dat')
-        data_split_unfiltered = device.CR10X.read_array_ids_data(infile_path=file)
-        data_split_filtered = device.CR10X.filter_data_by_array_ids('201', '203', data=data_split_unfiltered)
+        cr10x = device.CR10XParser()
+        data_split_unfiltered = cr10x.read_array_ids_data(infile_path=file)
+        data_split_filtered = cr10x.filter_data_by_array_ids('201', '203', data=data_split_unfiltered)
 
-        headers_1 = ["Array_Id", "Year", "Day", "Hour/Minute", "Tot_rad_AVG", "Air_Temp2_AVG", "Air_Temp1",
-                     "Humidity_AVG", "Wind_spd_S_WVT", "Wind_spd_U_WVT", "Wind_dir_DU_WVT", "Wind_dir_SDU_WVT",
-                     "Wind_spd3_AVG", "BadTemp_AVG", "PAR_AVG", "Air_Pres_AVG"]
+        data_split_filtered_201 = data_split_filtered.get('201')
+        data_split_filtered_203 = data_split_filtered.get('203')
 
-        headers_2 = ["Array_Id", "Year", "Day", "Hour/Minute", "Wind_spd_AVG", "Wind_dir_AVG"]
+        data_split_filtered_201_first_row = data_split_filtered_201[0]
+        data_split_filtered_203_first_row = data_split_filtered_203[0]
 
-        array_id_info_1 = {'file_path': output_file_1, 'headers': headers_1}
-        array_id_info_2 = {'file_path': output_file_2, 'headers': headers_2}
+        data_split_filtered_201_headers = [str(key) for key in data_split_filtered_201_first_row.keys()]
+        data_split_filtered_203_headers = [str(key) for key in data_split_filtered_203_first_row.keys()]
+
+        array_id_info_1 = {'file_path': output_file_1}
+        array_id_info_2 = {'file_path': output_file_2}
         array_id_info = {'201': array_id_info_1, '203': array_id_info_2}
 
-        device.CR10X.export_array_ids_to_csv(data=data_split_filtered, array_ids_info=array_id_info)
-        data_exported_file_1 = device.CR10X.read_mixed_data(infile_path=output_file_1)
-        data_exported_file_2 = device.CR10X.read_mixed_data(infile_path=output_file_2)
+        cr10x.export_array_ids_to_csv(data=data_split_filtered, array_ids_info=array_id_info, export_headers=True)
+        data_exported_file_1 = cr10x.read_mixed_data(infile_path=output_file_1)
+        data_exported_file_2 = cr10x.read_mixed_data(infile_path=output_file_2)
 
-        self.assertDataContentEqual(data_1=headers_1, data_2=data_exported_file_1[0])
-        self.assertDataContentEqual(data_1=headers_2, data_2=data_exported_file_2[0])
+        data_exported_file_1_headers_row = data_exported_file_1[0]
+        data_exported_file_1_headers = [value for value in data_exported_file_1_headers_row.values()]
+
+        data_exported_file_2_headers_row = data_exported_file_2[0]
+        data_exported_file_2_headers = [value for value in data_exported_file_2_headers_row.values()]
+
+        self.assertListEqual(data_split_filtered_201_headers, data_exported_file_1_headers)
+        self.assertListEqual(data_split_filtered_203_headers, data_exported_file_2_headers)
         self.delete_output(output_file_1)
 
 
@@ -256,20 +289,20 @@ class ConvertTimeTest(ReadDataTestCase):
         hour_minute = '2230'
         parsed_time_expected = datetime(2016, 1, 30, 22, 30, 0, tzinfo=pytz.UTC)
 
-        time_parser = timeparser.CR10XTimeParser(time_zone)
-        parsed_time = time_parser.parse_time(*[year, day, hour_minute], to_utc=False)
+        cr10x = device.CR10XParser(time_zone)
+        parsed_time = cr10x.parse_time(*[year, day, hour_minute], to_utc=False)
 
         self.assertEqual(parsed_time, parsed_time_expected)
 
     def test_convert_cr10x_time_to_utc(self):
-        time_zone = 'UTC'
+        time_zone = 'Europe/Stockholm'
         year = '2016'
         day = '30'
         hour_minute = '2230'
-        parsed_time_expected = datetime(2016, 1, 30, 22, 30, 0, tzinfo=pytz.UTC)
+        parsed_time_expected = datetime(2016, 1, 30, 21, 30, 0, tzinfo=pytz.UTC)
 
-        time_parser = timeparser.CR10XTimeParser(time_zone)
-        parsed_time = time_parser.parse_time(*[year, day, hour_minute], to_utc=True)
+        cr10x = device.CR10XParser(time_zone)
+        parsed_time = cr10x.parse_time(*[year, day, hour_minute], to_utc=True)
 
         self.assertEqual(parsed_time, parsed_time_expected)
 
@@ -277,40 +310,28 @@ class ConvertTimeTest(ReadDataTestCase):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
         array_ids_info = {'201': 'label_1'}
         expected_datetime = datetime(2012, 11, 25, 22, 0, 0, tzinfo=pytz.UTC)
+        cr10x = device.CR10XParser()
 
-        data = device.CR10X.read_array_ids_data(infile_path=file, array_ids_info=array_ids_info)
-        data_time_converted = device.CR10X.convert_time(
-            data=data.get('label_1'), time_columns=[1, 2, 3], data_time_zone='UTC'
-        )
-        headers_post_conversion, data_post_conversion = data_time_converted
+        data = cr10x.read_array_ids_data(infile_path=file, array_ids_info=array_ids_info)
+        data_time_converted = cr10x.convert_time(data=data.get('label_1'), time_columns=[1, 2, 3])
+        data_time_converted_first_row = data_time_converted[0]
+        data_time_converted_first_row_dt = data_time_converted_first_row.get(1)
 
-        self.assertEqual(expected_datetime, data_post_conversion[0][1])
+        self.assertEqual(expected_datetime, data_time_converted_first_row_dt)
 
-    def test_convert_cr10x_time_from_row_header_name(self):
+    def test_convert_cr10x_time_from_row_with_column_name(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
         array_ids_info = {'201': 'label_1'}
+        expected_datetime = datetime(2012, 11, 25, 22, 0, 0, tzinfo=pytz.UTC)
+        cr10x = device.CR10XParser()
 
-        headers = ["Array_Id", "Year", "Day", "Hour/Minute", "Tot_rad_AVG", "Air_Temp2_AVG", "Air_Temp1",
-                   "Humidity_AVG", "Wind_spd_S_WVT", "Wind_spd_U_WVT", "Wind_dir_DU_WVT", "Wind_dir_SDU_WVT",
-                   "Wind_spd3_AVG", "BadTemp_AVG", "PAR_AVG", "Air_Pres_AVG"]
+        data = cr10x.read_array_ids_data(infile_path=file, array_ids_info=array_ids_info)
+        data_time_converted = cr10x.convert_time(data=data.get('label_1'), time_columns=[1, 2, 3],
+                                                 time_parsed_column="TIMESTAMP")
+        data_time_converted_first_row = data_time_converted[0]
+        data_time_converted_first_row_dt = data_time_converted_first_row.get("TIMESTAMP")
 
-        time_columns = ["Year", "Day", "Hour/Minute"]
-        converted_time_header = "TMSTAMP"
-
-        expected_headers_post_conversion = [
-            "Array_Id", "TMSTAMP", "Tot_rad_AVG", "Air_Temp2_AVG", "Air_Temp1",
-            "Humidity_AVG", "Wind_spd_S_WVT", "Wind_spd_U_WVT", "Wind_dir_DU_WVT", "Wind_dir_SDU_WVT",
-            "Wind_spd3_AVG", "BadTemp_AVG", "PAR_AVG", "Air_Pres_AVG"
-        ]
-
-        data = device.CR10X.read_array_ids_data(infile_path=file, array_ids_info=array_ids_info)
-        data_time_converted = device.CR10X.convert_time(
-            data=data.get('label_1'), headers=headers, time_parsed_column=converted_time_header,
-            time_columns=time_columns, data_time_zone='UTC'
-        )
-        headers_post_conversion, data_post_conversion = data_time_converted
-
-        self.assertListEqual(headers_post_conversion, expected_headers_post_conversion)
+        self.assertEqual(expected_datetime, data_time_converted_first_row_dt)
 
     def test_export_to_csv_time_converted_data_no_time_zone(self):
         file = os.path.join(THIS_DIR, 'testdata/csv_testdata_10_rows.dat')
@@ -319,16 +340,15 @@ class ConvertTimeTest(ReadDataTestCase):
         expected_datetime = datetime(2012, 11, 25, 22, 0, 0)
         expected_datetime_string = str(expected_datetime)
 
-        data = device.CR10X.read_array_ids_data(infile_path=file, array_ids_info=array_ids_info)
-        data_time_converted = device.CR10X.convert_time(
-            data=data.get('label_1'), time_columns=[1, 2, 3], data_time_zone='UTC'
-        )
-        headers_post_conversion, data_post_conversion = data_time_converted
+        cr10x = device.CR10XParser()
+        data = cr10x.read_array_ids_data(infile_path=file, array_ids_info=array_ids_info)
+        data_time_converted = cr10x.convert_time(data=data.get('label_1'), time_columns=[1, 2, 3])
 
         array_ids_export_info = {'201': {'file_path': output_file}}
-        device.CR10X.export_array_ids_to_csv(data=data_post_conversion, array_ids_info=array_ids_export_info)
-        data_exported_file = device.CR10X.read_mixed_data(infile_path=output_file)
-        exported_datetime_string = data_exported_file[0][1]
+        cr10x.export_array_ids_to_csv(data=data_time_converted, array_ids_info=array_ids_export_info)
+        data_exported_file = cr10x.read_mixed_data(infile_path=output_file)
+        data_time_converted_first_row = data_exported_file[0]
+        exported_datetime_string = data_time_converted_first_row.get(1)
 
         self.assertEqual(expected_datetime_string, exported_datetime_string)
         self.delete_output(output_file)
@@ -339,18 +359,17 @@ class ConvertTimeTest(ReadDataTestCase):
         array_ids_info = {'201': 'label_1'}
         expected_datetime = datetime(2012, 11, 25, 22, 0, 0, tzinfo=pytz.UTC)
         expected_datetime_string = str(expected_datetime)
+        cr10x = device.CR10XParser()
 
-        data = device.CR10X.read_array_ids_data(infile_path=file, array_ids_info=array_ids_info)
-        data_time_converted = device.CR10X.convert_time(
-            data=data.get('label_1'), time_columns=[1, 2, 3], data_time_zone='UTC'
-        )
-        headers_post_conversion, data_post_conversion = data_time_converted
+        data = cr10x.read_array_ids_data(infile_path=file, array_ids_info=array_ids_info)
+        data_time_converted = cr10x.convert_time(data=data.get('label_1'), time_columns=[1, 2, 3])
 
         array_ids_export_info = {'201': {'file_path': output_file}}
-        device.CR10X.export_array_ids_to_csv(data=data_post_conversion, array_ids_info=array_ids_export_info,
-                                             include_time_zone=True)
-        data_exported_file = device.CR10X.read_mixed_data(infile_path=output_file)
-        exported_datetime_string = data_exported_file[0][1]
+        cr10x.export_array_ids_to_csv(data=data_time_converted, array_ids_info=array_ids_export_info,
+                                      include_time_zone=True)
+        data_exported_file = cr10x.read_mixed_data(infile_path=output_file)
+        data_time_converted_first_row = data_exported_file[0]
+        exported_datetime_string = data_time_converted_first_row.get(1)
 
         self.assertEqual(expected_datetime_string, exported_datetime_string)
         self.delete_output(output_file)
