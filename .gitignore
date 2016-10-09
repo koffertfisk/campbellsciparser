@@ -1,3 +1,6 @@
+# IDE files
+.settings
+
 # Python files
 build
 campbellsciparser/__pycache__
