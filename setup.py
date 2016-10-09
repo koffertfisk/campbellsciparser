@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 # Always prefer setuptools over distutils
-from setuptools import setup, find_packages
-# To use a consistent encoding
 from codecs import open
 from os import path
+from setuptools import setup, find_packages
 
+
+# To use a consistent encoding
 THIS_DIR = path.abspath(path.dirname(__file__))
 
 ## Get the long description from the README file

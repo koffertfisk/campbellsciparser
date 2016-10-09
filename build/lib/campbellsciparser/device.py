@@ -3,14 +3,12 @@
 
 """Module for parsing and exporting data collected by Campbell Scientific data loggers. """
 
-import csv
-import os
-import time
-
-import pytz
-
 from collections import defaultdict, namedtuple, OrderedDict
+import csv
 from datetime import datetime
+import os
+import pytz
+import time
 
 
 class TimeConversionException(Exception):

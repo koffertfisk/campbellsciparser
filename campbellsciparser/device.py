@@ -7,10 +7,10 @@ import csv
 import os
 import time
 
-import pytz
-
 from collections import defaultdict, namedtuple, OrderedDict
 from datetime import datetime
+
+import pytz
 
 
 class TimeConversionException(Exception):
@@ -259,14 +259,14 @@ class CampbellSCILoggerParser(object):
                     headers = [str(key) for key in row.keys()]
                     f_out.write(",".join(headers) + "\n")
                     export_headers = False
-                f_out.write((",".join(self._row_str_conversion(row, include_time_zone)) + "\n"))
+                f_out.write(",".join(self._row_str_conversion(row, include_time_zone)) + "\n")
 
-    def parse_time_values(self, *args, to_utc=False):
+    def parse_time_values(self, to_utc=False, *args):
         """Base method for converting Campbell data logger specific time representations to a datetime object.
 
         Args:
-            *args (str): Time strings to be parsed.
             to_utc (bool): Convert to UTC.
+            *args (str): Time strings to be parsed.
 
         Returns:
             Timestamp converted time.

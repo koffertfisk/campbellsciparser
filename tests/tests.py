@@ -1,18 +1,20 @@
 #!/usr/bin/env
 # -*- coding: utf-8 -*-
 
-import sys
+from campbellsciparser import device
+from datetime import datetime
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+import pytz
 import shutil
+import sys
 import unittest
 
-import pytz
 
-from datetime import datetime
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from campbellsciparser import device
+
+
+
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 

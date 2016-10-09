@@ -1,0 +1,5 @@
+# Python files
+build
+campbellsciparser/__pycache__
+CampellSCIParser.egg-info
+dist
