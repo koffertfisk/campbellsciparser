@@ -337,67 +337,19 @@ class CampbellSCILoggerParser(object):
 class CR10Parser(CampbellSCILoggerParser):
     """Parses and exports data files collected by Campbell Scientific CR10 data loggers. """
     
-    def __init__(self, time_zone='UTC', time_format_args_library=None):
-        """Initializes the data logger parser with time arguments for the CR10 model. """
+    def __init__(self, time_zone='UTC'):
+        """Initializes the data logger parser with time arguments for the CR10 model.
         
-        if not time_format_args_library:
-            self.time_format_args_library = ['%y', '%j', '%H%M']
-            
-        super().__init__(time_zone, time_format_args_library)
-        
-class CR10XParser(CampbellSCILoggerParser):
-    """Parses and exports data files collected by Campbell Scientific CR10X data loggers. """
-
-    def __init__(self, time_zone='UTC', time_format_args_library=None):
-        """Initializes the data logger parser with time arguments for the CR10X model.
-
         Args:
             time_zone (str): Data pytz time zone, used for localization. See pytz docs for reference.
-            time_format_args_library (list): List of expected time string representations.
+            #time_format_args_library (list): List of expected time string representations.
 
         """
-        if not time_format_args_library:
-            time_format_args_library = ['%Y', '%j', 'Hour/Minute']
-
-        super().__init__(time_zone, time_format_args_library)
-
-    @staticmethod
-    def _parse_hourminute(hour_minute_str):
-        """Parses the CR10X custom time format column 'Hour/Minute'.
-
-        Args:
-            hour_minute_str (str): Hour/Minute string to be parsed.
-
-        Returns:
-            The time parsed in the format HH:MM.
-
-        """
-        hour = 0
-        parsed_time_format = "%H:%M"
-        parsed_time = ""
-        parsing_info = namedtuple('ParsedHourMinInfo', ['parsed_time_format', 'parsed_time'])
-
-        if len(hour_minute_str) == 1:            # 0 - 9
-            minute = hour_minute_str
-            parsed_time = "00:0" + minute
-        elif len(hour_minute_str) == 2:           # 10 - 59
-            minute = hour_minute_str[-2:]
-            parsed_time = "00:" + minute
-        elif len(hour_minute_str) == 3:          # 100 - 959
-            hour = hour_minute_str[:1]
-            minute = hour_minute_str[-2:]
-            parsed_time = "0" + hour + ":" + minute
-        elif len(hour_minute_str) == 4:          # 1000 - 2359
-            hour = hour_minute_str[:2]
-            minute = hour_minute_str[-2:]
-            parsed_time = hour + ":" + minute
-        else:
-            raise ValueError("Hour/Minute {0} could not be parsed!".format(hour_minute_str))
-
-        return parsing_info(parsed_time_format, parsed_time)
-
+            
+        super().__init__(time_zone, time_format_args_library=['%y', '%j', '%H%M'])
+        
     def _parse_custom_time_format(self, *timevalues):
-        """Parses the CR10X custom time format.
+        """Parses the CR10 custom time format.
 
         Args:
             *timevalues (str): Time strings to be parsed.
@@ -410,23 +362,74 @@ class CR10XParser(CampbellSCILoggerParser):
 
         """
         time_values = list(timevalues)
+        
         if len(time_values) > 3:
             raise UnsupportedTimeFormatError(
-                "The CR10X time parser only supports Year, Day, Hour/Minute, got {0} time values".format(len(time_values)))
-        found_time_format_args = []
+                "The CR10 time parser only supports Year, Day, Hour/Minute, got {0} time values".format(len(time_values)))
+        
         parsing_info = namedtuple('ParsedTimeInfo', ['parsed_time_format', 'parsed_time'])
-
-        for i, value in enumerate(time_values):
-            found_time_format_args.append(self.time_format_args_library[i])
-            if i == 2:     # Time string "Hour/Minute" reached
-                parsed_time_format, parsed_time = self._parse_hourminute(value)
-                found_time_format_args[2] = parsed_time_format
-                time_values[2] = parsed_time
+        found_time_format_args = []
+        found_time_values = []
+        
+        for format_arg, time_arg in zip(self.time_format_args_library, time_values):
+            if format_arg == '%H%M':
+                time_arg = self._parse_hourminute(hour_minute_str)
+            found_time_format_args.append(format_arg)
+            found_time_values.append(time_arg)
 
         time_format_str = ','.join(found_time_format_args)
-        time_values_str = ','.join(time_values)
+        time_values_str = ','.join(found_time_values)
 
         return parsing_info(time_format_str, time_values_str)
+    
+    @staticmethod
+    def _parse_hourminute(hour_minute_str):
+        """
+            Parses the CR10 custom time format column 'Hour/Minute'. The time in the format
+            HHMM is determined by the length of the given time string since the CR10 does not 
+            output hours and minutes with leading zeros (except for midnight, which is output as 0). 
+            
+            Examples of the CR10's 'Hour/Minute' pattern and how they would be parsed:
+            
+            CR10 time string: 5
+            HHMM time string: 0005
+            
+            CR10 time string: 35
+            HHMM time string: 0035
+            
+            CR10 time string: 159
+            HHMM time string: 0159
+            
+            CR10 time string: 1337
+            HHMM time string: 1337
+            
+        Args:
+            hour_minute_str (str): Hour/Minute string to be parsed.
+
+        Returns:
+            The time parsed in the format HHMM.
+
+        """
+        parsed_time = ""
+
+        if len(hour_minute_str) == 1:            # 0 - 9
+            minute = hour_minute_str
+            parsed_time = "000" + minute
+        elif len(hour_minute_str) == 2:           # 10 - 59
+            minute = hour_minute_str[-2:]
+            parsed_time = "00" + minute
+        elif len(hour_minute_str) == 3:          # 100 - 959
+            hour = hour_minute_str[:1]
+            minute = hour_minute_str[-2:]
+            parsed_time = "0" + hour + minute
+        elif len(hour_minute_str) == 4:          # 1000 - 2359
+            hour = hour_minute_str[:2]
+            minute = hour_minute_str[-2:]
+            parsed_time = hour + minute
+        else:
+            raise ValueError("Hour/Minute {0} could not be parsed!".format(hour_minute_str))
+
+        return parsed_time
 
     @staticmethod
     def _process_mixed_rows(infile_path, line_num=0, fix_floats=True):
@@ -583,6 +586,20 @@ class CR10XParser(CampbellSCILoggerParser):
 
         """
         return [row for row in CR10XParser._read_mixed_data(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats)]
+        
+class CR10XParser(CR10Parser):
+    """Parses and exports data files collected by Campbell Scientific CR10X data loggers. """
+
+    def __init__(self, time_zone='UTC', time_format_args_library=None):
+        """Initializes the data logger parser with time arguments for the CR10X model.
+
+        Args:
+            time_zone (str): Data pytz time zone, used for localization. See pytz docs for reference.
+            time_format_args_library (list): List of expected time string representations.
+
+        """
+
+        super().__init__(time_zone, time_format_args_library=['%Y', '%j', '%H%M'])
 
 
 class CR1000Parser(CampbellSCILoggerParser):
