@@ -334,6 +334,17 @@ class CampbellSCILoggerParser(object):
         return data_headers_updated
 
 
+class CR10Parser(CampbellSCILoggerParser):
+    """Parses and exports data files collected by Campbell Scientific CR10 data loggers. """
+    
+    def __init__(self, time_zone='UTC', time_format_args_library=None):
+        """Initializes the data logger parser with time arguments for the CR10 model. """
+        
+        if not time_format_args_library:
+            self.time_format_args_library = ['%y', '%j', '%H%M']
+            
+        super().__init__(time_zone, time_format_args_library)
+        
 class CR10XParser(CampbellSCILoggerParser):
     """Parses and exports data files collected by Campbell Scientific CR10X data loggers. """
 
@@ -492,7 +503,7 @@ class CR10XParser(CampbellSCILoggerParser):
                                   include_time_zone=include_time_zone)
 
     @staticmethod
-    def filter_data_by_array_ids(*array_ids, data):
+    def filter_data_by_array_ids(data, *array_ids):
         """Filter data set by array ids.
 
         Args:

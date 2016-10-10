@@ -22,3 +22,4 @@ build
 campbellsciparser/__pycache__
 CampbellSCIParser.egg-info
 dist
+tests/__pycache__
