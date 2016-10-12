@@ -546,32 +546,40 @@ class BaseParserExportToCsvTest(ExportFileTestCase, ReadDataTestCase):
         self.delete_output(output_file)
 
 
-class BaseParserUpdateHeadersTest(unittest.TestCase):
-    """TODO """
+class BaseParserUpdateHeadersTest(ReadDataTestCase):
+
+    def test_update_headers_match_row_lengths(self):
+        file = os.path.join(THIS_DIR, 'testdata/base/csv_base_testdata_3_rows.dat')
+        baseparser = CampbellSCIBaseParser()
+        headers = ['Label_' + str(i) for i in range(3)]
+
+        data = baseparser.read_data(infile_path=file)
+        data_updated_headers = baseparser.update_headers(data=data, headers=headers)
+
+        for row in data_updated_headers:
+            self.assertListEqual(list(row.keys()), headers)
+
     def test_update_headers(self):
-        file = os.path.join(THIS_DIR, 'testdata/cr10/csv_cr10_testdata_10_rows.dat')
-        cr10 = CR10Parser()
-        headers = ['Array_Id', 'Year', 'Day', 'Hour/Minute', 'Wind_Speed', 'Wind_Direction']
+        file = os.path.join(THIS_DIR, 'testdata/base/csv_base_testdata_3_rows.dat')
+        baseparser = CampbellSCIBaseParser()
+        headers = ['Label_' + str(i) for i in range(3)]
 
-        data_split_unfiltered = cr10.read_array_ids_data(infile_path=file)
-        data_split_filtered = cr10.filter_data_by_array_ids(data_split_unfiltered, '203')
-        data_split_array_id_filtered = data_split_filtered.get('203')
+        data = baseparser.read_data(infile_path=file)
+        data_updated_headers = baseparser.update_headers(data=data, headers=headers)
 
-        data_headers_updated = cr10.update_headers(data=data_split_array_id_filtered, headers=headers)
-        data_headers_updated_first_row = data_headers_updated[0]
-        data_headers_updated_headers = [key for key in data_headers_updated_first_row.keys()]
-
-        self.assertListEqual(headers, data_headers_updated_headers)
+        for row in data_updated_headers:
+            for updated_row_name, expected_row_name in zip(list(row.keys()), headers):
+                self.assertEqual(updated_row_name, expected_row_name)
 
     def test_update_headers_output_mismatched_rows(self):
-        file = os.path.join(THIS_DIR, 'testdata/cr10/csv_cr10_testdata_10_rows.dat')
-        cr10 = CR10Parser()
-        headers = ['Array_Id', 'Year', 'Day', 'Hour/Minute', 'Wind_Speed', 'Wind_Direction']
+        file = os.path.join(THIS_DIR, 'testdata/base/csv_base_testdata_3_rows.dat')
+        baseparser = CampbellSCIBaseParser()
+        headers = ['Label_' + str(i) for i in range(3)]
 
-        data_mixed = cr10.read_mixed_data(infile_path=file)
+        data = baseparser.read_data(infile_path=file)
 
-        data_updated_headers, data_mismatched_rows = cr10.update_headers(
-            data=data_mixed, headers=headers, output_mismatched_rows=True)
+        data_updated_headers, data_mismatched_rows = baseparser.update_headers(
+            data=data, headers=headers, match_row_lengths=True, output_mismatched_rows=True)
 
         data_headers_updated_first_row = data_updated_headers[0]
         data_headers_updated_headers = [key for key in data_headers_updated_first_row.keys()]
@@ -580,6 +588,7 @@ class BaseParserUpdateHeadersTest(unittest.TestCase):
 
         for row in data_mismatched_rows:
             self.assertDataLengthNotEqual(row, len(headers))
+
 
 class CR10ParserTestCase(ReadDataTestCase):
     

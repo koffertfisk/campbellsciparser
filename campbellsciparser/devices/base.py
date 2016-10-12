@@ -345,19 +345,23 @@ class CampbellSCIBaseParser(object):
         return data
 
     @staticmethod
-    def update_headers(data, headers, output_mismatched_rows=False):
-
+    def update_headers(data, headers, match_row_lengths=True, output_mismatched_rows=False):
         data_headers_updated = []
         data_headers_length_mismatched = []
 
         for row in CampbellSCIBaseParser._data_generator(data):
-            if len(headers) == len(row.values()):
-                data_headers_updated.append(OrderedDict([(name, value) for name, value in zip(headers, row.values())]))
+            if match_row_lengths:
+                if len(headers) == len(row):
+                    data_headers_updated.append(OrderedDict([(name, value) for name, value in zip(headers, row.values())]))
+                else:
+                    if output_mismatched_rows:
+                        data_headers_length_mismatched.append(row)
             else:
+                data_headers_updated.append(OrderedDict([(name, value) for name, value in zip(headers, row.values())]))
                 if output_mismatched_rows:
                     data_headers_length_mismatched.append(row)
 
-        if output_mismatched_rows:
+        if match_row_lengths and output_mismatched_rows:
             return data_headers_updated, data_headers_length_mismatched
 
         return data_headers_updated
