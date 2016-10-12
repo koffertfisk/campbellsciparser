@@ -28,6 +28,10 @@ class TimeParsingException(ValueError):
     pass
 
 
+class TimeZoneAlreadySet(ValueError):
+    pass
+
+
 class UnknownPytzTimeZoneError(pytz.UnknownTimeZoneError):
     pass
 
@@ -73,16 +77,19 @@ class CampbellSCIBaseParser(object):
             yield row
 
     @staticmethod
-    def _datetime_to_str_no_time_zone(dt):
-        """Produces a string representation from a datetime object without time zone information.
+    def _datetime_to_string_repr(dt, include_time_zone=False):
+        """Produces a string representation from a datetime object including or excluding time zone information.
 
         Args:
             dt (datetime): Datetime to process.
 
         Returns:
-            String representation of the given datetime excluding the time zone.
+            String representation of the given datetime including or excluding the time zone.
 
         """
+        if include_time_zone:
+            return dt.strftime("%Y-%m-%d %H:%M:%S%z")
+
         return dt.strftime("%Y-%m-%d %H:%M:%S")
 
     @staticmethod
@@ -149,7 +156,7 @@ class CampbellSCIBaseParser(object):
             rows = csv.reader(f)
             if headers:
                 pass
-            elif header_row and header_row >= 0:
+            if isinstance(header_row, int) and header_row >= 0:
                 headers = rows.__next__()
                 for i in range(header_row):
                     headers = rows.__next__()
@@ -179,7 +186,7 @@ class CampbellSCIBaseParser(object):
         for row in CampbellSCIBaseParser._process_rows(infile_path, headers=headers, header_row=header_row, line_num=line_num):
             yield row
 
-    def _row_str_conversion(self, row, include_time_zone=False):
+    def _values_to_strings(self, row, include_time_zone=False):
         """Produces a list for the values in a row, converted to strings.
 
         Args:
@@ -191,8 +198,8 @@ class CampbellSCIBaseParser(object):
 
         """
         for key, value in row.items():
-            if not include_time_zone and isinstance(value, datetime):
-                row[key] = self._datetime_to_str_no_time_zone(value)
+            if isinstance(value, datetime):
+                row[key] = self._datetime_to_string_repr(value, include_time_zone=include_time_zone)
             else:
                 row[key] = str(value)
 
@@ -265,7 +272,7 @@ class CampbellSCIBaseParser(object):
                     headers = [str(key) for key in row.keys()]
                     f_out.write(",".join(headers) + "\n")
                     export_headers = False
-                f_out.write(",".join(self._row_str_conversion(row, include_time_zone)) + "\n")
+                f_out.write(",".join(self._values_to_strings(row, include_time_zone)) + "\n")
 
     def parse_time_values(self, *time_values, **parsing_info):
         """Base method for converting Campbell data logger specific time representations to a datetime object.
@@ -298,7 +305,11 @@ class CampbellSCIBaseParser(object):
                 raise TimeParsingException(msg)
 
         else:
-            loc_dt = self.time_zone.localize(dt)
+            try:
+                loc_dt = self.time_zone.localize(dt)
+            except ValueError:
+                #print("Datetime already localized.")
+                loc_dt = dt
 
         parsed_dt = loc_dt
 
