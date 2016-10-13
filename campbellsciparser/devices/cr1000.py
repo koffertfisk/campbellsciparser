@@ -7,18 +7,18 @@ from campbellsciparser.devices.base import *
 class CR1000Parser(CampbellSCIBaseParser):
     """Parses and exports data files collected by Campbell Scientific CR1000 data loggers. """
 
-    def __init__(self, time_zone='UTC', time_format_args_library=None):
+    def __init__(self, pytz_time_zone='UTC', time_format_args_library=None):
         """Initializes the data logger parser with time arguments for the CR1000 model.
 
         Args:
-            time_zone (str): Data pytz time zone, used for localization. See pytz docs for reference.
+            pytz_time_zone (str): Data pytz time zone, used for localization. See pytz docs for reference.
             time_format_args_library (list): List of expected time string representations.
 
         """
         if not time_format_args_library:
             time_format_args_library = ['%Y-%m-%d %H:%M:%S']
 
-        super().__init__(time_zone, time_format_args_library)
+        super().__init__(pytz_time_zone, time_format_args_library)
 
     def _parse_custom_time_format(self, *timevalues):
         """Parses the CR1000 custom time format.

@@ -21,15 +21,15 @@ class ArrayIdsFilePathError(ArrayIdsInfoError):
 class CR10Parser(CampbellSCIBaseParser):
     """Parses and exports data files collected by Campbell Scientific CR10 data loggers. """
     
-    def __init__(self, time_zone='UTC'):
+    def __init__(self, pytz_time_zone='UTC'):
         """Initializes the data logger parser with time arguments for the CR10 model.
         
         Args:
-            time_zone (str): Data pytz time zone, used for localization. See pytz docs for reference.
+            pytz_time_zone (str): Data pytz time zone, used for localization. See pytz docs for reference.
 
         """
             
-        super().__init__(time_zone, time_format_args_library=['%y', '%j', '%H%M'])
+        super().__init__(pytz_time_zone, time_format_args_library=['%y', '%j', '%H%M'])
         
     def _parse_custom_time_format(self, *time_values):
         """Parses the CR10 custom time format.

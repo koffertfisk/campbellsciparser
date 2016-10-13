@@ -13,11 +13,10 @@ if __name__ == '__main__':
     #campbellparser = CampbellSCIBaseParser('Etc/GMT-1', [])
     #cr10x = CR10XParser('Etc/GMT-1')
     home = os.path.expanduser('~')
-    fpath = os.path.join(home, 'Jobb', 'Data', 'data', 'csv_base_testdata_3_rows_headers.dat')
+    fpath = os.path.join(home, 'Jobb', 'Data', 'data', 'csv_all_testdata_3_rows_headers.dat')
     baseparser = CampbellSCIBaseParser()
-    #row_1 = OrderedDict([('Label_0', '1')])
-    #row_2 = OrderedDict([('Label_0', '1'), ('Label_1', '2')])
-    #row_3 = OrderedDict([('Label_0', '1'), ('Label_1', '2'), ('Label_2', '3')])
 
-    for row in baseparser._process_rows(infile_path=fpath, header_row=0, line_num=0):
-        print(row)
+    data = baseparser.read_data(infile_path=fpath, header_row=0)
+    headers = ['A', 'B', 'C']
+    data_updated = baseparser.update_headers(data=data, headers=headers, match_row_lengths=True)
+    print(data_updated)

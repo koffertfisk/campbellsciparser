@@ -1,8 +1,11 @@
-#!/usr/bin/env
 # -*- coding: utf-8 -*-
 
-"""Module for parsing and exporting data collected by Campbell Scientific data loggers. """
+"""
+CampbellSCIBaseParser
+---------------------
+Base utility for parsing and exporting data collected by Campbell Scientific dataloggers.
 
+"""
 import csv
 import os.path
 
@@ -11,50 +14,66 @@ from datetime import datetime
 
 import pytz
 
-
-class DataTypeError(TypeError):
-    pass
-
-
-class TimeColumnValueError(ValueError):
-    pass
-
-
-class TimeConversionException(Exception):
-    pass
-
-
-class TimeParsingException(ValueError):
-    pass
-
-
-class TimeZoneAlreadySet(ValueError):
-    pass
-
-
-class UnknownPytzTimeZoneError(pytz.UnknownTimeZoneError):
-    pass
-
-
-class UnsupportedTimeFormatError(ValueError):
-    pass
+from campbellsciparser.devices.common import TimeColumnValueError
+from campbellsciparser.devices.common import TimeParsingException
+from campbellsciparser.devices.common import UnknownPytzTimeZoneError
 
 
 class CampbellSCIBaseParser(object):
-    """Base class for parsing and exporting data collected by Campbell Scientific data loggers. """
+    """Generic parser that provides basic utility for most CR-type models.
 
-    def __init__(self, time_zone='UTC', time_format_args_library=None):
-        """Initializes the data logger parser with time arguments (needed for time parsing and time conversion).
+    All parsed data is represented as a sequence (rows) of order-preserving
+    key/value pairs (columns). The keys represent column names if headers are given,
+    otherwise they will hold their column indices. The values hold each respective
+    column's data value, represented as a string (by default).
 
-        Args:
-            time_zone (str): Data pytz time zone, used for localization. See pytz docs for reference.
-            time_format_args_library (list): List of expected time string representations.
+    Args
+    ----
+    pytz_time_zone (str): String representation of a valid pytz time zone. (See pytz docs
+        for more information). The time zone refers to collected data's time zone, which
+        defaults to UTC and is used for localization and time conversion.
+    time_format_args_library (list): List of the maximum expected string format columns
+        sequence to match against when parsing time values. Defaults to empty library.
 
-        """
+            Example configurations
+            ----------------------
+
+            1. Consider the time values ['2016', '1', '1', '22', '30', '00', '+0100'].
+
+            The library ['%Y'] would parse only the year.
+            The library ['%Y', '%m'] would parse year and month.
+            The library ['%Y', '%m', '%d'] would parse year, month and day.
+            The library ['%Y', '%m', '%d', '%H', '%M', '%S'] would parse year, month, day,
+            hour, minute and seconds.
+            The library ['%Y', '%m', '%d', '%H', '%M', '%S', '%z'] would parse year,
+            month, day, hour, minute, seconds and time zone, overriding the specified
+            parser time zone.
+
+            2. Consider the time values ['2016', '1', '1'].
+
+            The library ['%Y', '%m', '%d', '%H', '%M', '%S'] would parse year, month
+            and day.
+
+            Consider the time values ['2016-01-01 22:30:00']
+
+            3. The library ['%Y-%d-%m %H:%M:%S'] would parse year, month, day, hour,
+            minute and seconds.
+
+        See the section "strftime() and strptime() Behavior" (as of October 2016) in the
+        Python docs for valid time string formats.
+
+    Raises
+    ------
+    UnknownPytzTimeZoneError: If the given time zone is not a valid pytz time zone.
+
+    """
+    def __init__(self, pytz_time_zone='UTC', time_format_args_library=None):
+
         try:
-            self.time_zone = pytz.timezone(time_zone)
+            self.time_zone = pytz.timezone(pytz_time_zone)
         except pytz.UnknownTimeZoneError:
-            msg = "{0} is not a valid pytz time zone! See pytz docs for valid time zones".format(time_zone)
+            msg = "{0} is not a valid pytz time zone! "
+            msg += "See pytz docs for valid time zones".format(pytz_time_zone)
             raise UnknownPytzTimeZoneError(msg)
 
         if not time_format_args_library:
@@ -137,6 +156,51 @@ class CampbellSCIBaseParser(object):
         time_values_str = ','.join(found_time_values)
 
         return parsing_info(time_format_str, time_values_str)
+
+    def _parse_time_values(self, *time_values, **parsing_info):
+        """Base method for converting Campbell data logger specific time representations to a datetime object.
+
+        Args:
+            *time_values (str): Time strings to be parsed.
+            **parsing_info: Additional parsing information. If to_utc is present and true, convert parsed time to UTC.
+
+        Returns:
+            Timestamp converted time.
+
+        Raises:
+            TimeParsingException: If time string format and time values parsing error is not ignored.
+
+        """
+        parsed_time_format, parsed_time = self._parse_custom_time_format(*time_values)
+
+        try:
+            dt = datetime.strptime(parsed_time, parsed_time_format)
+
+        except ValueError:
+            msg = "Could not parse time string {0} using the format {1}".format(parsed_time, parsed_time_format)
+            print(msg)
+            ignore_parsing_error = parsing_info.get('ignore_parsing_error', False)
+
+            if ignore_parsing_error:
+                loc_dt = datetime.fromtimestamp(0, self.time_zone)
+                print("Setting time value to epoch time ({0})".format(str(loc_dt)))
+            else:
+                raise TimeParsingException(msg)
+
+        else:
+            try:
+                loc_dt = self.time_zone.localize(dt)
+            except ValueError:
+                #print("Datetime already localized.")
+                loc_dt = dt
+
+        parsed_dt = loc_dt
+
+        if parsing_info.get('to_utc', False):
+            utc_dt = loc_dt.astimezone(pytz.utc)
+            parsed_dt = utc_dt
+
+        return parsed_dt
 
     @staticmethod
     def _process_rows(infile_path, headers=None, header_row=None, line_num=0):
@@ -229,7 +293,7 @@ class CampbellSCIBaseParser(object):
         for row in self._data_generator(data):
             first_time_column_key = self._find_first_time_column_key(list(row.keys()), time_columns)
             row_time_column_values = [value for key, value in row.items() if key in time_columns]
-            row_time_converted = self.parse_time_values(*row_time_column_values, to_utc=to_utc)
+            row_time_converted = self._parse_time_values(*row_time_column_values, to_utc=to_utc)
 
             old_key = first_time_column_key
             new_key = old_key
@@ -273,51 +337,6 @@ class CampbellSCIBaseParser(object):
                     f_out.write(",".join(headers) + "\n")
                     export_headers = False
                 f_out.write(",".join(self._values_to_strings(row, include_time_zone)) + "\n")
-
-    def parse_time_values(self, *time_values, **parsing_info):
-        """Base method for converting Campbell data logger specific time representations to a datetime object.
-
-        Args:
-            *time_values (str): Time strings to be parsed.
-            **parsing_info: Additional parsing information. If to_utc is present and true, convert parsed time to UTC.
-
-        Returns:
-            Timestamp converted time.
-
-        Raises:
-            TimeParsingException: If time string format and time values parsing error is not ignored.
-
-        """
-        parsed_time_format, parsed_time = self._parse_custom_time_format(*time_values)
-
-        try:
-            dt = datetime.strptime(parsed_time, parsed_time_format)
-
-        except ValueError:
-            msg = "Could not parse time string {0} using the format {1}".format(parsed_time, parsed_time_format)
-            print(msg)
-            ignore_parsing_error = parsing_info.get('ignore_parsing_error', False)
-
-            if ignore_parsing_error:
-                loc_dt = datetime.fromtimestamp(0, self.time_zone)
-                print("Setting time value to epoch time ({0})".format(str(loc_dt)))
-            else:
-                raise TimeParsingException(msg)
-
-        else:
-            try:
-                loc_dt = self.time_zone.localize(dt)
-            except ValueError:
-                #print("Datetime already localized.")
-                loc_dt = dt
-
-        parsed_dt = loc_dt
-
-        if parsing_info.get('to_utc', False):
-            utc_dt = loc_dt.astimezone(pytz.utc)
-            parsed_dt = utc_dt
-
-        return parsed_dt
 
     def read_data(self, infile_path, headers=None, header_row=None, line_num=0, convert_time=False,
                   time_parsed_column=None, time_columns=None, to_utc=False):

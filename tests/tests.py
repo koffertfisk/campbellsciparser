@@ -63,14 +63,14 @@ class BaseParserSetupTest(unittest.TestCase):
     def test_valid_pytz_time_zone(self):
         time_zone = 'Europe/Stockholm'
         try:
-            baseparser = CampbellSCIBaseParser(time_zone=time_zone)
+            baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone)
         except UnknownPytzTimeZoneError:
             self.fail("Exception raised unexpectedly")
 
     def test_invalid_pytz_time_zone(self):
         time_zone = 'Foo'
         with self.assertRaises(UnknownPytzTimeZoneError):
-            baseparser = CampbellSCIBaseParser(time_zone=time_zone)
+            baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone)
 
 
 class BaseParserProcessDataTest(ReadDataTestCase):
@@ -236,7 +236,7 @@ class BaseParserProcessDataTest(ReadDataTestCase):
         time_columns = [i for i in range(6)]
         expected_datetime = datetime(2016, 1, 1, 22, 30, 15, tzinfo=pytz_time_zone)
 
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=time_format_args_library)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
         data = baseparser.read_data(infile_path=file, convert_time=True, time_columns=time_columns)
         data_first_row = data[0]
         dt_first_row = data_first_row.get(0)
@@ -251,7 +251,7 @@ class BaseParserProcessDataTest(ReadDataTestCase):
         time_columns = [i for i in range(6)]
         expected_datetime = datetime(2016, 1, 1, 21, 30, 15, tzinfo=pytz.UTC)
 
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=time_format_args_library)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
         data = baseparser.read_data(infile_path=file, convert_time=True, time_columns=time_columns, to_utc=True)
         data_first_row = data[0]
         dt_first_row = data_first_row.get(0)
@@ -267,7 +267,7 @@ class BaseParserProcessDataTest(ReadDataTestCase):
         expected_datetime = datetime(2016, 1, 1, 22, 30, 15, tzinfo=pytz_time_zone)
         expected_time_parsed_column_name = 'TIMESTAMP'
 
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=time_format_args_library)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
         data = baseparser.read_data(
             infile_path=file, convert_time=True, time_parsed_column=expected_time_parsed_column_name,
@@ -316,7 +316,7 @@ class BaseParserTimeParsingTest(unittest.TestCase):
 
     def test_parse_custom_time_format_less_library_args(self):
         time_zone = 'Europe/Stockholm'
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=[])
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=[])
         parsing_info = baseparser._parse_custom_time_format('2016')
         parsed_time_format, parsed_time = parsing_info
 
@@ -325,7 +325,7 @@ class BaseParserTimeParsingTest(unittest.TestCase):
 
     def test_parse_custom_time_format_less_time_values(self):
         time_zone = 'Europe/Stockholm'
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=['%Y'])
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=['%Y'])
         parsing_info = baseparser._parse_custom_time_format()
         parsed_time_format, parsed_time = parsing_info
 
@@ -340,7 +340,7 @@ class BaseParserTimeParsingTest(unittest.TestCase):
         expected_parsed_time_format = ','.join(time_format_args_library)
         expected_parsed_time_values = ','.join(time_values_args)
 
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=time_format_args_library)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
         parsing_info = baseparser._parse_custom_time_format(*time_values_args)
         parsed_time_format, parsed_time = parsing_info
 
@@ -352,7 +352,7 @@ class BaseParserTimeParsingTest(unittest.TestCase):
         time_zone = 'Etc/GMT-1'
         pytz_time_zone = pytz.timezone(time_zone)
         time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S', '%z']
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=time_format_args_library)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
         expected_datetime = datetime(2016, 1, 1, 22, 30, 15, tzinfo=pytz_time_zone)
 
         data = baseparser.read_data(infile_path=file)
@@ -367,7 +367,7 @@ class BaseParserTimeParsingTest(unittest.TestCase):
         time_zone = 'Etc/GMT-1'
         pytz_time_zone = pytz.timezone(time_zone)
         time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S']
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=time_format_args_library)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
         expected_datetime = datetime(2016, 1, 1, 22, 30, 15, tzinfo=pytz_time_zone)
 
         data = baseparser.read_data(infile_path=file)
@@ -381,7 +381,7 @@ class BaseParserTimeParsingTest(unittest.TestCase):
         file = os.path.join(THIS_DIR, 'testdata/base/csv_base_testdata_1_row_time.dat')
         time_zone = 'Etc/GMT-1'
         time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S', '%z']
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=time_format_args_library)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
         data = baseparser.read_data(infile_path=file)
         expected_time_parsed_column = "TIMESTAMP"
@@ -396,7 +396,7 @@ class BaseParserTimeParsingTest(unittest.TestCase):
         file = os.path.join(THIS_DIR, 'testdata/base/csv_base_testdata_1_row_time.dat')
         time_zone = 'Etc/GMT-1'
         time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S', '%z']
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=time_format_args_library)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
         expected_datetime = datetime(2016, 1, 1, 21, 30, 15, tzinfo=pytz.UTC)
 
         data = baseparser.read_data(infile_path=file)
@@ -414,9 +414,9 @@ class BaseParserTimeParsingTest(unittest.TestCase):
 
     def test_parse_time_values_no_values(self):
         time_zone = 'UTC'
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone)
         expected_dt = datetime(1900, 1, 1, 0, 0, 0, tzinfo=pytz.UTC)
-        parsed_dt = baseparser.parse_time_values()
+        parsed_dt = baseparser._parse_time_values()
 
         self.assertEqual(parsed_dt, expected_dt)
 
@@ -424,10 +424,10 @@ class BaseParserTimeParsingTest(unittest.TestCase):
         time_zone = 'UTC'
         time_format_args_library = ['%NotParsable']
         time_values = ['2016-01-01 22:15:30']
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=time_format_args_library)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
         with self.assertRaises(TimeParsingException):
-            baseparser.parse_time_values(*time_values, ignore_parsing_error=False)
+            baseparser._parse_time_values(*time_values, ignore_parsing_error=False)
 
     def test_parse_time_values_ignore_parsing_error(self):
         time_zone = 'UTC'
@@ -435,9 +435,9 @@ class BaseParserTimeParsingTest(unittest.TestCase):
         time_values = ['2016-01-01 22:15:30']
         expected_dt = datetime(1970, 1, 1, 0, 0, 0, tzinfo=pytz.UTC)
 
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=time_format_args_library)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
-        parsed_dt = baseparser.parse_time_values(*time_values, ignore_parsing_error=True)
+        parsed_dt = baseparser._parse_time_values(*time_values, ignore_parsing_error=True)
 
         self.assertEqual(parsed_dt, expected_dt)
 
@@ -446,41 +446,41 @@ class BaseParserTimeParsingTest(unittest.TestCase):
         time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S', '%z']
         time_values = ['2016', '1', '1', '22', '15', '30', '+0100']
         expected_dt = datetime(2016, 1, 1, 22, 15, 30, tzinfo=pytz.timezone(time_zone))
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=time_format_args_library)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
-        parsed_dt = baseparser.parse_time_values(*time_values)
+        parsed_dt = baseparser._parse_time_values(*time_values)
 
         self.assertEqual(parsed_dt, expected_dt)
 
     def test_parse_time_values_no_lib(self):
         time_zone = 'UTC'
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone)
         expected_dt = datetime(1900, 1, 1, 0, 0, 0, tzinfo=pytz.UTC)
         time_values = ['2016-01-01 22:15:30']
 
-        parsed_dt = baseparser.parse_time_values(*time_values)
+        parsed_dt = baseparser._parse_time_values(*time_values)
 
         self.assertEqual(parsed_dt, expected_dt)
 
     def test_parse_time_values(self):
         time_zone = 'UTC'
         time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S']
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=time_format_args_library)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
         expected_dt = datetime(2016, 1, 1, 22, 15, 30, tzinfo=pytz.UTC)
         time_values = ['2016', '1', '1', '22', '15', '30']
 
-        parsed_dt = baseparser.parse_time_values(*time_values)
+        parsed_dt = baseparser._parse_time_values(*time_values)
 
         self.assertEqual(parsed_dt, expected_dt)
 
     def test_parse_time_values_to_utc(self):
         time_zone = 'Europe/Stockholm'
         time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S']
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone, time_format_args_library=time_format_args_library)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
         expected_dt = datetime(2016, 1, 1, 21, 15, 30, tzinfo=pytz.UTC)
         time_values = ['2016', '1', '1', '22', '15', '30']
 
-        parsed_dt = baseparser.parse_time_values(*time_values, to_utc=True)
+        parsed_dt = baseparser._parse_time_values(*time_values, to_utc=True)
 
         self.assertEqual(parsed_dt, expected_dt)
 
@@ -533,7 +533,7 @@ class BaseParserExportToCsvTest(ExportFileTestCase, ReadDataTestCase):
         data = [OrderedDict([('Time', dt)])]
 
         output_file = os.path.join(THIS_DIR, 'testoutput/test.dat')
-        baseparser = CampbellSCIBaseParser(time_zone=time_zone)
+        baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone)
 
         baseparser.export_to_csv(data=data, outfile_path=output_file, export_headers=True, include_time_zone=True)
         data_exported_file = baseparser.read_data(infile_path=output_file, header_row=0)
@@ -548,7 +548,7 @@ class BaseParserExportToCsvTest(ExportFileTestCase, ReadDataTestCase):
 
 class BaseParserUpdateHeadersTest(ReadDataTestCase):
 
-    def test_update_headers_match_row_lengths(self):
+    def test_update_headers(self):
         file = os.path.join(THIS_DIR, 'testdata/base/csv_base_testdata_3_rows.dat')
         baseparser = CampbellSCIBaseParser()
         headers = ['Label_' + str(i) for i in range(3)]
@@ -559,7 +559,7 @@ class BaseParserUpdateHeadersTest(ReadDataTestCase):
         for row in data_updated_headers:
             self.assertListEqual(list(row.keys()), headers)
 
-    def test_update_headers(self):
+    def test_update_headers_not_matching_row_lengths(self):
         file = os.path.join(THIS_DIR, 'testdata/base/csv_base_testdata_3_rows.dat')
         baseparser = CampbellSCIBaseParser()
         headers = ['Label_' + str(i) for i in range(3)]
@@ -580,11 +580,6 @@ class BaseParserUpdateHeadersTest(ReadDataTestCase):
 
         data_updated_headers, data_mismatched_rows = baseparser.update_headers(
             data=data, headers=headers, match_row_lengths=True, output_mismatched_rows=True)
-
-        data_headers_updated_first_row = data_updated_headers[0]
-        data_headers_updated_headers = [key for key in data_headers_updated_first_row.keys()]
-
-        self.assertListEqual(headers, data_headers_updated_headers)
 
         for row in data_mismatched_rows:
             self.assertDataLengthNotEqual(row, len(headers))
@@ -864,7 +859,7 @@ class CR10ParserConvertTimeTest(ConvertTimeTest):
         parsed_time_expected = datetime(2016, 1, 30, 22, 30, 0, tzinfo=pytz.UTC)
 
         cr10 = CR10Parser(time_zone)
-        parsed_time = cr10.parse_time_values(*[year, day, hour_minute], to_utc=False)
+        parsed_time = cr10._parse_time_values(*[year, day, hour_minute], to_utc=False)
 
         self.assertEqual(parsed_time, parsed_time_expected)
 
@@ -876,7 +871,7 @@ class CR10ParserConvertTimeTest(ConvertTimeTest):
         parsed_time_expected = datetime(2016, 1, 30, 21, 30, 0, tzinfo=pytz.UTC)
 
         cr10 = CR10Parser(time_zone)
-        parsed_time = cr10.parse_time_values(*[year, day, hour_minute], to_utc=True)
+        parsed_time = cr10._parse_time_values(*[year, day, hour_minute], to_utc=True)
 
         self.assertEqual(parsed_time, parsed_time_expected)
         
@@ -891,7 +886,7 @@ class CR10XParserConvertTimeTest(ConvertTimeTest):
         parsed_time_expected = datetime(2016, 1, 30, 22, 30, 0, tzinfo=pytz.UTC)
 
         cr10x = CR10XParser(time_zone)
-        parsed_time = cr10x.parse_time_values(*[year, day, hour_minute], to_utc=False)
+        parsed_time = cr10x._parse_time_values(*[year, day, hour_minute], to_utc=False)
 
         self.assertEqual(parsed_time, parsed_time_expected)
 
