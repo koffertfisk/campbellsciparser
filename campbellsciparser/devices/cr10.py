@@ -1,5 +1,10 @@
-#!/usr/bin/env
 # -*- coding: utf-8 -*-
+"""
+CR10Parser
+---------------------
+Utility for parsing and exporting data collected by Campbell Scientific CR10 dataloggers.
+
+"""
 
 from collections import defaultdict
 
@@ -18,39 +23,84 @@ class ArrayIdsFilePathError(ArrayIdsInfoError):
     pass
 
 
-class CR10Parser(CampbellSCIBaseParser):
-    """Parses and exports data files collected by Campbell Scientific CR10 data loggers. """
-    
-    def __init__(self, pytz_time_zone='UTC'):
-        """Initializes the data logger parser with time arguments for the CR10 model.
-        
-        Args:
-            pytz_time_zone (str): Data pytz time zone, used for localization. See pytz docs for reference.
+class DataTypeError(TypeError):
+    pass
 
-        """
-            
-        super().__init__(pytz_time_zone, time_format_args_library=['%y', '%j', '%H%M'])
+
+class UnsupportedTimeFormatError(ValueError):
+    pass
+
+
+class CR10Parser(CampbellSCIBaseParser):
+    """Custom parser setup for the CR10.
+
+    CR10 datalogger specific details:
+
+        * The first column value in each row in an output file is typically an integer
+        which is used for table identification, often referred to as an "array ID".
+        This parser assumes that all input files have an array ID as their first column
+        value in each row.
+
+        * The CR10 typically outputs each rows' timestamp using the format
+        Year, Julian Day, Hour/Minute (as separate columns). The parser's default time
+        format arguments library is set to match this pattern. It will, in other words,
+        be able to parse the following example time values:
+
+            ['16']
+            ['16', '1']
+            ['16', '1', '0']
+            ['16', '1', '5']
+            ['16', '1', '35']
+            ['16', '1', '542']
+            ['16', '1', '1315']
+
+        However, the user can override this default configuration to match other patterns.
+        For instance, the following configuration would be able to parse time columns that
+        does not lead with a year: ['%j', '%H%M']. See the section
+        "strftime() and strptime() Behavior" (as of October 2016) in the Python docs for
+        valid time string formats.
+
+        * Data is typically output in a "mixed" format, meaning that data from multiple
+         table definitions (hence, different array ID:s) is stored in the same file.
+
+        All parsed data is represented using the same data structure as the base parser
+        (see CampbellSCIBaseParser documentation for reference) with the exception that
+        data filtered by array ID is stored in a dictionary where the keys represent array
+        ID:s and the values the data to each corresponding array ID.
+
+    Args
+    ----
+    pytz_time_zone (str): String representation of a valid pytz time zone. (See pytz docs
+        for more information). The time zone refers to collected data's time zone, which
+        defaults to UTC and is used for localization and time conversion.
+    time_format_args_library (list): List of the maximum expected string format columns
+        sequence to match against when parsing time values. Defaults to the most common
+        CR10 time representation setup.
+
+    """
+    def __init__(self, pytz_time_zone='UTC', time_format_args_library=None):
+
+        if not time_format_args_library:
+            time_format_args_library = ['%y', '%j', '%H%M']
+
+        super().__init__(pytz_time_zone, time_format_args_library)
         
     def _parse_custom_time_format(self, *time_values):
-        """Parses the CR10 custom time format.
+        """
+        Parses the CR10 specific time representations based on its time format
+        args library.
 
-        Args:
-            *time_values (str): Time strings to be parsed.
+        Args
+        ----
+        time_values (str): Time strings to be matched against the CR10 parser time
+            format library.
 
-        Returns:
-            Parsed time format string representation and value.
-
-        Raises:
-            UnsupportedTimeFormatError: If more than three arguments is being passed.
+        Returns
+        -------
+        Two comma separated strings in a namedtuple; one for the time string formats and
+        one for the time values.
 
         """
-        
-        if len(time_values) > 3:
-            msg = "The CR10 time parser only supports Year, Day, Hour/Minute, got {0} time values"
-            msg = msg.format(len(time_values))
-
-            raise UnsupportedTimeFormatError(msg)
-        
         parsing_info = namedtuple('ParsedTimeInfo', ['parsed_time_format', 'parsed_time'])
         found_time_format_args = []
         found_time_values = []
@@ -69,33 +119,38 @@ class CR10Parser(CampbellSCIBaseParser):
     @staticmethod
     def _parse_hourminute(hour_minute_str):
         """
-            Parses the CR10 custom time format column 'Hour/Minute'. The time in the format
-            HHMM is determined by the length of the given time string since the CR10 does not 
-            output hours and minutes with leading zeros (except for midnight, which is output as 0). 
-            
-            Examples of the CR10's 'Hour/Minute' pattern and how they would be parsed:
-            
-            CR10 time string: 5
-            HHMM time string: 0005
-            
-            CR10 time string: 35
-            HHMM time string: 0035
-            
-            CR10 time string: 159
-            HHMM time string: 0159
-            
-            CR10 time string: 1337
-            HHMM time string: 1337
-            
-        Args:
-            hour_minute_str (str): Hour/Minute string to be parsed.
+        Parses the CR10 custom time format column 'Hour/Minute'. The time in the format
+        HHMM is determined by the length of the given time string since the CR10 does not
+        output hours and minutes with leading zeros (except for midnight, which is output
+        as 0).
 
-        Returns:
-            The time parsed in the format HHMM.
+        Examples of the CR10's 'Hour/Minute' pattern and how they would be parsed:
+
+        CR10 time string: '5'
+        HHMM time string: '0005'
+
+        CR10 time string: '35'
+        HHMM time string: '0035'
+
+        CR10 time string: '159'
+        HHMM time string: '0159'
+
+        CR10 time string: '2345'
+        HHMM time string: '2345'
+
+        Args
+        ----
+        hour_minute_str (str): Hour/Minute string to be parsed.
+
+        Returns
+        -------
+        The time parsed in the format HHMM.
+
+        Raises
+        ------
+        TimeColumnValueError: If the given time column value could not be parsed.
 
         """
-        parsed_time = ""
-
         if len(hour_minute_str) == 1:            # 0 - 9
             minute = hour_minute_str
             parsed_time = "000" + minute
@@ -111,28 +166,33 @@ class CR10Parser(CampbellSCIBaseParser):
             minute = hour_minute_str[-2:]
             parsed_time = hour + minute
         else:
-            raise ValueError("Hour/Minute {0} could not be parsed!".format(hour_minute_str))
+            msg = "Hour/Minute {0} could not be parsed!".format(hour_minute_str)
+            raise TimeColumnValueError(msg)
 
         return parsed_time
 
     @staticmethod
     def _process_mixed_rows(infile_path, line_num=0, fix_floats=True):
-        """Helper method for _read_data.
+        """Iterator for _read_mixed_data.
 
-        Args:
-            infile_path (str): Input file's absolute path.
-            line_num (int): Line number to start at. NOTE: Zero-based numbering.
-            fix_floats (bool): Correct leading zeros floating points since the CR10 does not output leading zeros.
+        Args
+        ----
+        infile_path (str): Input file's absolute path.
+        line_num (int): Line number to start at. NOTE: Zero-based numbering.
+        fix_floats (bool): Correct leading zeros floating points since the CR10 does not
+            output leading zeros.
 
-        Returns:
-            Each processed row represented as an OrderedDict, returned one at a time.
+        Returns
+        -------
+        Each processed row represented as an OrderedDict, returned one at a time.
 
         """
         with open(infile_path, 'r') as f:
             rows = csv.reader(f)
             replacements = {'.': '0.', '-.': '-0.'}    # Patterns to look for
             for row in rows:
-                if line_num <= (rows.line_num - 1):   # Correct reader for zero-based numbering
+                # Correct reader for zero-based numbering
+                if line_num <= (rows.line_num - 1):
                     if fix_floats:
                         for i, value in enumerate(row):
                             for source, replacement in replacements.items():
@@ -143,34 +203,42 @@ class CR10Parser(CampbellSCIBaseParser):
 
     @staticmethod
     def _read_mixed_data(infile_path, line_num=0, fix_floats=True):
-        """Produces a generator object of data read from given file input starting from a given line number.
+        """Iterate over mixed data read from given file starting at a given line number.
 
-        Args:
-            infile_path (str): Input file's absolute path.
-            line_num (int): Line number to start at. NOTE: Zero-based numbering.
-            fix_floats (bool): Correct leading zeros floating points since the CR10 does not output leading zeros.
+        Args
+        ----
+        infile_path (str): Input file's absolute path.
+        line_num (int): Line number to start at. NOTE: Zero-based numbering.
+        fix_floats (bool): Correct leading zeros floating points since the CR10 does not
+            output leading zeros.
 
-        Returns:
-            Each processed row, one at a time.
+        Returns
+        -------
+        Each processed row, one at a time.
 
         """
         for row in CR10Parser._process_mixed_rows(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats):
             yield row
 
-    def export_array_ids_to_csv(self, data, array_ids_info, export_headers=False, mode='a', include_time_zone=False):
-        """Export array ids data as separate comma-separated values files.
+    def export_array_ids_to_csv(self, data, array_ids_info, export_headers=False,
+                                mode='a', include_time_zone=False):
+        """Write array id separated data to a CSV file.
 
-        Args:
-            data (dict(list(OrderedDict))): Array id separated data.
-            array_ids_info (dict(dict)): Array ids to export. Contains output file paths and file headers.
-            export_headers (bool): Write file headers at the top of the output file.
-            mode (str): Output file open mode, defaults to append. See Python Docs for other mode options.
-            include_time_zone (bool): Include time zone in string converted datetime values.
+        Args
+        ----
+        data (dict(list(OrderedDict))): Array id separated data.
+        array_ids_info (dict(dict)): Array ids to export. Contains output file paths and
+            file headers.
+        export_headers (bool): Write file headers at the top of the output file.
+        mode (str): Output file open mode, defaults to append. See Python Docs for other
+            mode options.
+        include_time_zone (bool): Include time zone in string converted datetime values.
 
-        Raises:
-            ArrayIdsInfoError: If not at least one array id in array_ids_info is found.
-            ArrayIdsExportInfoError: If no information for a certain array id is found.
-            ArrayIdsFilePathError: If no output file path for a certain array id is found.
+        Raises
+        ------
+        ArrayIdsInfoError: If not at least one array id in array_ids_info is found.
+        ArrayIdsExportInfoError: If no information for a certain array id is found.
+        ArrayIdsFilePathError: If no output file path for a certain array id is found.
 
         """
         if len(array_ids_info) < 1:
@@ -181,25 +249,34 @@ class CR10Parser(CampbellSCIBaseParser):
         for array_id, array_id_data in data_filtered.items():
             export_info = array_ids_info.get(array_id)
             if not export_info:
-                raise ArrayIdsExportInfoError("No information was found for array id {0}".format(array_id))
+                msg = "No information was found for array id {0}".format(array_id)
+                raise ArrayIdsExportInfoError(msg)
             file_path = export_info.get('file_path')
             if not file_path:
-                raise ArrayIdsFilePathError("Not file path was found for array id {0}".format(array_id))
+                msg = "Not file path was found for array id {0}".format(array_id)
+                raise ArrayIdsFilePathError(msg)
 
-            super().export_to_csv(data=array_id_data, outfile_path=file_path, export_headers=export_headers, mode=mode,
-                                  include_time_zone=include_time_zone)
+            super().export_to_csv(
+                data=array_id_data,
+                outfile_path=file_path,
+                export_headers=export_headers,
+                mode=mode,
+                include_time_zone=include_time_zone)
 
     @staticmethod
     def filter_data_by_array_ids(data, *array_ids):
         """Filter data set by array ids.
 
-        Args:
-            *array_ids: Array ids to filter by. If no arguments are given, return unfiltered data set.
-            data (dict(list(OrderedDict)), list): Array id separated or mixed data.
+        Args
+        ----
+        array_ids: Array ids to filter by. If no arguments are given, return unfiltered
+            data set.
+        data (dict(list(OrderedDict)), list): Array id separated or mixed data.
 
-        Returns:
-            Filtered data set if array ids are given, unfiltered otherwise. If a mixed data set is given, return
-            unfiltered data set split by its array ids.
+        Returns
+        -------
+        Filtered data set if array ids are given, unfiltered otherwise. If a mixed
+        data set is given, return unfiltered data set split by its array ids.
 
         Raises:
             DataTypeError: if anything else than list or dictionary data is given.
@@ -209,7 +286,7 @@ class CR10Parser(CampbellSCIBaseParser):
 
         if isinstance(data, dict):
             if not array_ids:
-                return data     # Return unfiltered data set
+                return data
             for array_id, array_id_data in data.items():
                 if array_id in array_ids:
                     data_filtered[array_id] = array_id_data
@@ -220,37 +297,47 @@ class CR10Parser(CampbellSCIBaseParser):
                 except IndexError:
                     continue
                 if not array_ids:
-                    data_filtered[array_id_name].append(row)   # Append to unfiltered data set, but split by array ids.
+                    # Append to unfiltered data set, but split by array ids.
+                    data_filtered[array_id_name].append(row)
                 else:
                     if array_id_name in array_ids:
                         data_filtered[array_id_name].append(row)
         else:
-            msg = "Data collection of type {0} not supported. Valid collection types are dict and list.".format(type(data))
+            msg = "Data collection of type {0} not supported. "
+            msg += "Valid collection types are dict and list.".format(type(data))
             raise DataTypeError(msg)
 
         return data_filtered
 
     @staticmethod
-    def read_array_ids_data(infile_path, line_num=0, fix_floats=True, array_ids_info=None):
-        """Parses data filtered by array id (each rows' first element) from a given file.
+    def read_array_ids_data(infile_path, line_num=0, fix_floats=True, array_id_names=None):
+        """Parses data filtered by array id (each rows' first element) read from a file.
 
-        Args:
-            infile_path (str): Input file's absolute path.
-            line_num (int): Line number to start at. NOTE: Zero-based numbering.
-            fix_floats (bool): Correct leading zeros floating points since the CR10 does not output leading zeros.
-            array_ids_info (dict): Lookup table for array id name translation.
+        Args
+        ----
+        infile_path (str): Input file's absolute path.
+        line_num (int): Line number to start at. NOTE: Zero-based numbering.
+        fix_floats (bool): Correct leading zeros floating points since the CR10 does not
+            output leading zeros.
+        array_id_names (dict): Lookup table for array id name translation.
 
-        Returns:
-            All data found from the given line number onwards, filtered by array id.
+        Returns
+        -------
+        All data found from the given line number onwards, filtered by array id.
 
         """
-        if not array_ids_info:
-            array_ids_info = {}
-        array_ids = [key for key in array_ids_info.keys()]
-        data_mixed = CR10Parser.read_mixed_data(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats)
+        if not array_id_names:
+            array_id_names = {}
+        array_ids = [array_id for array_id in array_id_names.keys()]
+
+        data_mixed = CR10Parser.read_mixed_data(
+            infile_path=infile_path,
+            line_num=line_num,
+            fix_floats=fix_floats)
+
         data_by_array_ids = CR10Parser.filter_data_by_array_ids(data_mixed, *array_ids)
 
-        for array_id, array_name in array_ids_info.items():
+        for array_id, array_name in array_id_names.items():
             if array_id in data_by_array_ids:
                 if array_name:
                     data_by_array_ids[array_name] = data_by_array_ids.pop(array_id)
@@ -259,15 +346,22 @@ class CR10Parser(CampbellSCIBaseParser):
 
     @staticmethod
     def read_mixed_data(infile_path, line_num=0, fix_floats=True):
-        """Parses data from a given file without filtering.
+        """
+        Reads mixed data from a file (without array ids filtering) and stores it
+        in the base parser's data structure format (see CampbellSCIBaseParser class
+        documentation for details).
 
-        Args:
-            infile_path (str): Input file's absolute path.
-            line_num (int): Line number to start at. NOTE: Zero-based numbering.
-            fix_floats (bool): Correct leading zeros floating points since the CR10 does not output leading zeros.
+        Args
+        ----
+        infile_path (str): Input file's absolute path.
+        line_num (int): Line number to start at. NOTE: Zero-based numbering.
+        fix_floats (bool): Correct leading zeros floating points since the CR10 does not
+            output leading zeros.
 
-        Returns:
-            All data found from the given line number onwards.
+        Returns
+        -------
+        All data found from the given line number onwards.
 
         """
-        return [row for row in CR10Parser._read_mixed_data(infile_path=infile_path, line_num=line_num, fix_floats=fix_floats)]
+        return [row for row in CR10Parser._read_mixed_data(
+            infile_path=infile_path, line_num=line_num, fix_floats=fix_floats)]

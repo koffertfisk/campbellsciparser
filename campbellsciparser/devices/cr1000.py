@@ -1,38 +1,37 @@
-#!/usr/bin/env
 # -*- coding: utf-8 -*-
+"""
+CR1000Parser
+---------------------
+Utility for parsing and exporting data collected by Campbell Scientific CR1000 dataloggers.
+
+"""
 
 from campbellsciparser.devices.base import *
 
 
 class CR1000Parser(CampbellSCIBaseParser):
-    """Parses and exports data files collected by Campbell Scientific CR1000 data loggers. """
+    """Custom parser setup for the CR1000.
 
+    CR1000 datalogger specific details:
+
+        * The CR1000 typically outputs each rows' timestamp using the format
+        Year-Month-Day Hour:Minute:Seconds. The parser's default time
+        format arguments library is set to match this pattern. It will, in other words,
+        be able to parse the following example time values: ['2016-01-01 22:30:15'].
+
+    Args
+    ----
+    pytz_time_zone (str): String representation of a valid pytz time zone. (See pytz docs
+        for more information). The time zone refers to collected data's time zone, which
+        defaults to UTC and is used for localization and time conversion.
+    time_format_args_library (list): List of the maximum expected string format columns
+        sequence to match against when parsing time values. Defaults to the most common
+        CR1000 time representation setup.
+
+    """
     def __init__(self, pytz_time_zone='UTC', time_format_args_library=None):
-        """Initializes the data logger parser with time arguments for the CR1000 model.
 
-        Args:
-            pytz_time_zone (str): Data pytz time zone, used for localization. See pytz docs for reference.
-            time_format_args_library (list): List of expected time string representations.
-
-        """
         if not time_format_args_library:
             time_format_args_library = ['%Y-%m-%d %H:%M:%S']
 
         super().__init__(pytz_time_zone, time_format_args_library)
-
-    def _parse_custom_time_format(self, *timevalues):
-        """Parses the CR1000 custom time format.
-
-        Args:
-            *timevalues (str): Time strings to be parsed.
-
-        Returns:
-            Parsed time format string representation and value.
-
-        Raises:
-            IndexError: If the time format arguments library is empty or no time value is given.
-
-        """
-        parsing_info = namedtuple('ParsedTimeInfo', ['parsed_time_format', 'parsed_time'])
-
-        return parsing_info(self.time_format_args_library[0], timevalues[0])

@@ -15,7 +15,7 @@ from datetime import datetime
 
 from campbellsciparser.devices import CampbellSCIBaseParser
 from campbellsciparser.devices import TimeColumnValueError
-from campbellsciparser.devices import TimeParsingException
+from campbellsciparser.devices import TimeParsingError
 from campbellsciparser.devices import UnknownPytzTimeZoneError
 from campbellsciparser.devices import CR10Parser
 from campbellsciparser.devices import CR10XParser
@@ -288,7 +288,7 @@ class BaseParserTimeParsingTest(unittest.TestCase):
         expected_datetime = datetime(2012, 11, 25, 22, 0, 0)
         dt = datetime(2012, 11, 25, 22, 0, 0, tzinfo=pytz_time_zone)
         expected_datetime_string = str(expected_datetime)
-        dt_string = baseparser._datetime_to_string_repr(dt=dt)
+        dt_string = baseparser._datetime_to_string(dt=dt)
 
         self.assertEqual(expected_datetime_string, dt_string)
 
@@ -426,7 +426,7 @@ class BaseParserTimeParsingTest(unittest.TestCase):
         time_values = ['2016-01-01 22:15:30']
         baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
-        with self.assertRaises(TimeParsingException):
+        with self.assertRaises(TimeParsingError):
             baseparser._parse_time_values(*time_values, ignore_parsing_error=False)
 
     def test_parse_time_values_ignore_parsing_error(self):
@@ -548,37 +548,37 @@ class BaseParserExportToCsvTest(ExportFileTestCase, ReadDataTestCase):
 
 class BaseParserUpdateHeadersTest(ReadDataTestCase):
 
-    def test_update_headers(self):
+    def test_update_column_names(self):
         file = os.path.join(THIS_DIR, 'testdata/base/csv_base_testdata_3_rows.dat')
         baseparser = CampbellSCIBaseParser()
         headers = ['Label_' + str(i) for i in range(3)]
 
         data = baseparser.read_data(infile_path=file)
-        data_updated_headers = baseparser.update_headers(data=data, headers=headers)
+        data_updated_headers = baseparser.update_column_names(data=data, headers=headers)
 
         for row in data_updated_headers:
             self.assertListEqual(list(row.keys()), headers)
 
-    def test_update_headers_not_matching_row_lengths(self):
+    def test_update_column_names_not_matching_row_lengths(self):
         file = os.path.join(THIS_DIR, 'testdata/base/csv_base_testdata_3_rows.dat')
         baseparser = CampbellSCIBaseParser()
         headers = ['Label_' + str(i) for i in range(3)]
 
         data = baseparser.read_data(infile_path=file)
-        data_updated_headers = baseparser.update_headers(data=data, headers=headers)
+        data_updated_headers = baseparser.update_column_names(data=data, headers=headers)
 
         for row in data_updated_headers:
             for updated_row_name, expected_row_name in zip(list(row.keys()), headers):
                 self.assertEqual(updated_row_name, expected_row_name)
 
-    def test_update_headers_output_mismatched_rows(self):
+    def test_update_column_names_output_mismatched_rows(self):
         file = os.path.join(THIS_DIR, 'testdata/base/csv_base_testdata_3_rows.dat')
         baseparser = CampbellSCIBaseParser()
         headers = ['Label_' + str(i) for i in range(3)]
 
         data = baseparser.read_data(infile_path=file)
 
-        data_updated_headers, data_mismatched_rows = baseparser.update_headers(
+        data_updated_headers, data_mismatched_rows = baseparser.update_column_names(
             data=data, headers=headers, match_row_lengths=True, output_mismatched_rows=True)
 
         for row in data_mismatched_rows:
@@ -793,7 +793,7 @@ class CR10ParserExportDataTest(CR10ParserTestCase, ExportFileTestCase):
         data_split_array_id_filtered = data_split_filtered.get('203')
 
         headers = ['Array_Id', 'Year', 'Day', 'Hour/Minute', 'Wind_Speed', 'Wind_Direction']
-        data_updated_headers = cr10.update_headers(data=data_split_array_id_filtered, headers=headers)
+        data_updated_headers = cr10.update_column_names(data=data_split_array_id_filtered, headers=headers)
         array_ids_info = {'203': {'file_path': output_file}}
         cr10.export_array_ids_to_csv(data=data_updated_headers, array_ids_info=array_ids_info, export_headers=True)
 
