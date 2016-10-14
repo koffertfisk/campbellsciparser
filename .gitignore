@@ -1,4 +1,4 @@
-#Eclipse Specific GitIgnore
+# Eclipse Specific GitIgnore
 *.pydevproject
 .project
 .metadata
@@ -14,10 +14,10 @@ local.properties
 .settings/
 .loadpath
 
-#Gitignore save
+# Gitignore save
 .gitignore.save
 
-#Pycharm Specific GitIgnore
+# Pycharm Specific GitIgnore
 .idea
 
 # Python files
@@ -30,11 +30,10 @@ tests/devices/base/__pycache__
 tests/devices/cr10/__pycache__
 tests/devices/cr10x/__pycache__
 tests/devices/cr1000/__pycache__
-
 CampbellSCIParser.egg-info
 dist
 tests/__pycache__
 
-#Pytests files
+#Pytest files
 .cache
 
