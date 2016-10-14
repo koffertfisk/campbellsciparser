@@ -14,12 +14,27 @@ local.properties
 .settings/
 .loadpath
 
+#Gitignore save
+.gitignore.save
+
 #Pycharm Specific GitIgnore
 .idea
 
 # Python files
 build
+campbellsciparser/*.pyc
 campbellsciparser/__pycache__
+campbellsciparser/devices/__pycache__
+campbellsciparser/tests/__pycache__
+campbellsciparser/tests/base/__pycache__
+campbellsciparser/tests/cr10/__pycache__
+campbellsciparser/tests/cr10x/__pycache__
+campbellsciparser/tests/cr1000/__pycache__
+
 CampbellSCIParser.egg-info
 dist
 tests/__pycache__
+
+#Pytests files
+.cache
+
