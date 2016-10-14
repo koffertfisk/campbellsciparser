@@ -25,11 +25,11 @@ build
 campbellsciparser/*.pyc
 campbellsciparser/__pycache__
 campbellsciparser/devices/__pycache__
-campbellsciparser/tests/__pycache__
-campbellsciparser/tests/base/__pycache__
-campbellsciparser/tests/cr10/__pycache__
-campbellsciparser/tests/cr10x/__pycache__
-campbellsciparser/tests/cr1000/__pycache__
+campbellsciparser/tests/devices/__pycache__
+campbellsciparser/tests/devices/base/__pycache__
+campbellsciparser/tests/devices/cr10/__pycache__
+campbellsciparser/tests/devices/cr10x/__pycache__
+campbellsciparser/tests/devices/cr1000/__pycache__
 
 CampbellSCIParser.egg-info
 dist
