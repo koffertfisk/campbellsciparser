@@ -1,51 +1,52 @@
 # !/usr/bin/env
 # -*- coding: utf-8 -*-
 
-import os.path
+import os
 
-from campbellsciparser.devices.base import CampbellSCIBaseParser
+from campbellsciparser.devices import CampbellSCIBaseParser
 
-from tests.devices.common_all import *
+TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
-class BaseParserUpdateColumnNamesTest(ReadDataTestCase):
+def test_update_column_names():
+    file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_3_rows.dat')
+    baseparser = CampbellSCIBaseParser()
+    headers = ['Label_' + str(i) for i in range(3)]
 
-    def test_update_column_names(self):
-        file = os.path.join(TEST_DEVICES_DIR, 'testdata/base/csv_base_testdata_3_rows.dat')
-        baseparser = CampbellSCIBaseParser()
-        headers = ['Label_' + str(i) for i in range(3)]
+    data = baseparser.read_data(infile_path=file)
+    data_updated_headers = baseparser.update_column_names(data=data, headers=headers)
 
-        data = baseparser.read_data(infile_path=file)
-        data_updated_headers = baseparser.update_column_names(data=data, headers=headers)
+    for row in data_updated_headers:
+        assert len(list(row.keys())) == len(headers) and (
+            sorted(list(row.keys())) == sorted(headers))
 
-        for row in data_updated_headers:
-            self.assertListEqual(list(row.keys()), headers)
 
-    def test_update_column_names_not_matching_row_lengths(self):
-        file = os.path.join(TEST_DEVICES_DIR, 'testdata/base/csv_base_testdata_3_rows.dat')
-        baseparser = CampbellSCIBaseParser()
-        headers = ['Label_' + str(i) for i in range(3)]
+def test_update_column_names_not_matching_row_lengths():
+    file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_3_rows.dat')
+    baseparser = CampbellSCIBaseParser()
+    headers = ['Label_' + str(i) for i in range(3)]
 
-        data = baseparser.read_data(infile_path=file)
-        data_updated_headers = baseparser.update_column_names(data=data, headers=headers)
+    data = baseparser.read_data(infile_path=file)
+    data_updated_headers = baseparser.update_column_names(data=data, headers=headers)
 
-        for row in data_updated_headers:
-            for updated_row_name, expected_row_name in zip(list(row.keys()), headers):
-                self.assertEqual(updated_row_name, expected_row_name)
+    for row in data_updated_headers:
+        for updated_row_name, expected_row_name in zip(list(row.keys()), headers):
+            assert updated_row_name == expected_row_name
 
-    def test_update_column_names_output_mismatched_rows(self):
-        file = os.path.join(TEST_DEVICES_DIR, 'testdata/base/csv_base_testdata_3_rows.dat')
-        baseparser = CampbellSCIBaseParser()
-        headers = ['Label_' + str(i) for i in range(3)]
 
-        data = baseparser.read_data(infile_path=file)
+def test_update_column_names_output_mismatched_rows():
+    file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_3_rows.dat')
+    baseparser = CampbellSCIBaseParser()
+    headers = ['Label_' + str(i) for i in range(3)]
 
-        data_updated_headers, data_mismatched_rows = baseparser.update_column_names(
-            data=data,
-            headers=headers,
-            match_row_lengths=True,
-            output_mismatched_rows=True
-        )
+    data = baseparser.read_data(infile_path=file)
 
-        for row in data_mismatched_rows:
-            self.assertDataLengthNotEqual(row, len(headers))
+    data_updated_headers, data_mismatched_rows = baseparser.update_column_names(
+        data=data,
+        headers=headers,
+        match_row_lengths=True,
+        output_mismatched_rows=True
+    )
+
+    for row in data_mismatched_rows:
+        assert len(row) != len(headers)

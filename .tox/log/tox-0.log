@@ -1,0 +1,53 @@
+actionid: tox
+msg: packaging
+cmdargs: ['/home/marcus/virtualenvs/campbellsciparserenv/bin/python3', local('/home/marcus/Python_Projects/campbellsciparser/setup.py'), 'sdist', '--formats=zip', '--dist-dir', local('/home/marcus/Python_Projects/campbellsciparser/.tox/dist')]
+env: None
+
+running sdist
+running egg_info
+writing dependency_links to CampbellSCIParser.egg-info/dependency_links.txt
+writing top-level names to CampbellSCIParser.egg-info/top_level.txt
+writing CampbellSCIParser.egg-info/PKG-INFO
+writing requirements to CampbellSCIParser.egg-info/requires.txt
+reading manifest file 'CampbellSCIParser.egg-info/SOURCES.txt'
+writing manifest file 'CampbellSCIParser.egg-info/SOURCES.txt'
+/home/marcus/virtualenvs/campbellsciparserenv/lib/python3.5/site-packages/setuptools/dist.py:331: UserWarning: Normalizing '0.3b' to '0.3b0'
+  normalized_version,
+warning: sdist: standard file not found: should have one of README, README.rst, README.txt
+
+running check
+creating CampbellSCIParser-0.3b0
+creating CampbellSCIParser-0.3b0/CampbellSCIParser.egg-info
+creating CampbellSCIParser-0.3b0/campbellsciparser
+creating CampbellSCIParser-0.3b0/campbellsciparser/devices
+copying files to CampbellSCIParser-0.3b0...
+copying setup.cfg -> CampbellSCIParser-0.3b0
+copying setup.py -> CampbellSCIParser-0.3b0
+copying CampbellSCIParser.egg-info/PKG-INFO -> CampbellSCIParser-0.3b0/CampbellSCIParser.egg-info
+copying CampbellSCIParser.egg-info/SOURCES.txt -> CampbellSCIParser-0.3b0/CampbellSCIParser.egg-info
+copying CampbellSCIParser.egg-info/dependency_links.txt -> CampbellSCIParser-0.3b0/CampbellSCIParser.egg-info
+copying CampbellSCIParser.egg-info/requires.txt -> CampbellSCIParser-0.3b0/CampbellSCIParser.egg-info
+copying CampbellSCIParser.egg-info/top_level.txt -> CampbellSCIParser-0.3b0/CampbellSCIParser.egg-info
+copying campbellsciparser/__init__.py -> CampbellSCIParser-0.3b0/campbellsciparser
+copying campbellsciparser/devices/__init__.py -> CampbellSCIParser-0.3b0/campbellsciparser/devices
+copying campbellsciparser/devices/base.py -> CampbellSCIParser-0.3b0/campbellsciparser/devices
+copying campbellsciparser/devices/cr10.py -> CampbellSCIParser-0.3b0/campbellsciparser/devices
+copying campbellsciparser/devices/cr1000.py -> CampbellSCIParser-0.3b0/campbellsciparser/devices
+copying campbellsciparser/devices/cr10x.py -> CampbellSCIParser-0.3b0/campbellsciparser/devices
+Writing CampbellSCIParser-0.3b0/setup.cfg
+creating '.tox/dist/CampbellSCIParser-0.3b0.zip' and adding 'CampbellSCIParser-0.3b0' to it
+adding 'CampbellSCIParser-0.3b0/setup.cfg'
+adding 'CampbellSCIParser-0.3b0/setup.py'
+adding 'CampbellSCIParser-0.3b0/PKG-INFO'
+adding 'CampbellSCIParser-0.3b0/CampbellSCIParser.egg-info/top_level.txt'
+adding 'CampbellSCIParser-0.3b0/CampbellSCIParser.egg-info/PKG-INFO'
+adding 'CampbellSCIParser-0.3b0/CampbellSCIParser.egg-info/requires.txt'
+adding 'CampbellSCIParser-0.3b0/CampbellSCIParser.egg-info/dependency_links.txt'
+adding 'CampbellSCIParser-0.3b0/CampbellSCIParser.egg-info/SOURCES.txt'
+adding 'CampbellSCIParser-0.3b0/campbellsciparser/__init__.py'
+adding 'CampbellSCIParser-0.3b0/campbellsciparser/devices/cr10.py'
+adding 'CampbellSCIParser-0.3b0/campbellsciparser/devices/cr10x.py'
+adding 'CampbellSCIParser-0.3b0/campbellsciparser/devices/cr1000.py'
+adding 'CampbellSCIParser-0.3b0/campbellsciparser/devices/base.py'
+adding 'CampbellSCIParser-0.3b0/campbellsciparser/devices/__init__.py'
+removing 'CampbellSCIParser-0.3b0' (and everything under it)

@@ -34,6 +34,8 @@ CampbellSCIParser.egg-info
 dist
 tests/__pycache__
 
-#Pytest files
+# Pytest files
 .cache
 
+# Tox
+.tox

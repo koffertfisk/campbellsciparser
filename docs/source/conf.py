@@ -217,7 +217,7 @@ html_static_path = ['_static']
 
 # If true, an OpenSearch description file will be output, and all pages will
 # contain a <link> tag referring to it.  The value of this option must be the
-# base URL from which the finished HTML is served.
+# test_base URL from which the finished HTML is served.
 #
 # html_use_opensearch = ''
 
@@ -242,7 +242,7 @@ html_static_path = ['_static']
 #
 # html_search_scorer = 'scorer.js'
 
-# Output file base name for HTML help builder.
+# Output file test_base name for HTML help builder.
 htmlhelp_basename = 'CampbellSCIParserdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
