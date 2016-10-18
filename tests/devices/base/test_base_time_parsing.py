@@ -98,7 +98,7 @@ def test_convert_time_from_data_row_already_time_zone_aware():
     time_zone = 'Etc/GMT-1'
     pytz_time_zone = pytz.timezone(time_zone)
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S', '%z']
-    time_columns = [i for i in range(6)]
+    time_columns = [i for i in range(7)]
     baseparser = CampbellSCIBaseParser(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
@@ -135,7 +135,7 @@ def test_convert_time_from_data_row_with_column_name():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_1_row_time.dat')
     time_zone = 'Etc/GMT-1'
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S', '%z']
-    time_columns = [i for i in range(6)]
+    time_columns = [i for i in range(7)]
     baseparser = CampbellSCIBaseParser(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
@@ -158,7 +158,7 @@ def test_convert_time_from_data_row_to_utc():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_1_row_time.dat')
     time_zone = 'Etc/GMT-1'
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S', '%z']
-    time_columns = [i for i in range(6)]
+    time_columns = [i for i in range(7)]
     baseparser = CampbellSCIBaseParser(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
@@ -170,6 +170,26 @@ def test_convert_time_from_data_row_to_utc():
 
     data_time_converted_first_row = data_time_converted[0]
     data_time_converted_first_row_dt = data_time_converted_first_row.get(0)
+
+    assert expected_datetime == data_time_converted_first_row_dt
+
+
+def test_convert_time_from_data_row_replace_column():
+    file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_1_row_time_and_values.dat')
+    time_zone = 'Etc/GMT-1'
+    time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S']
+    time_columns = [i + 1 for i in range(6)]
+    baseparser = CampbellSCIBaseParser(
+        pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
+
+    expected_datetime = datetime(2016, 1, 1, 21, 30, 15, tzinfo=pytz.UTC)
+
+    data = baseparser.read_data(infile_path=file)
+    data_time_converted = baseparser.convert_time(
+        data=data, time_columns=time_columns, replace_time_column=3, to_utc=True)
+
+    data_time_converted_first_row = data_time_converted[0]
+    data_time_converted_first_row_dt = data_time_converted_first_row.get(3)
 
     assert expected_datetime == data_time_converted_first_row_dt
 

@@ -309,7 +309,8 @@ class CampbellSCIBaseParser(object):
 
         return row.values()
 
-    def convert_time(self, data, time_parsed_column=None, time_columns=None, to_utc=False):
+    def convert_time(self, data, time_parsed_column=None, time_columns=None,
+                     replace_time_column=None, to_utc=False):
         """
         Converts specific time columns from a data set into a single column with the
         time converted to a datetime object.
@@ -320,6 +321,8 @@ class CampbellSCIBaseParser(object):
         time_parsed_column (str): Converted time column name. If not given, use the
             name of the first time column.
         time_columns (list): Column(s) (names or indices) to use for time conversion.
+        replace_time_column (str): Column to place the parsed datetime object at. If not
+            given, insert at the first time column index.
         to_utc (bool): Convert time to UTC.
 
         Returns
@@ -328,7 +331,8 @@ class CampbellSCIBaseParser(object):
 
         Raises
         ------
-        TimeColumnValueError: If not at least one time column is given.
+        TimeColumnValueError: If not at least one time column is given or if the specified
+            time column to replace is not found.
 
         """
         if not time_columns:
@@ -337,10 +341,17 @@ class CampbellSCIBaseParser(object):
         data_converted = []
 
         for row in self._data_generator(data):
-            first_time_column_key = (
-                self._find_first_time_column_key(
-                    list(row.keys()), time_columns)
-            )
+            if not replace_time_column:
+                replace_time_column_key = (
+                    self._find_first_time_column_key(
+                        list(row.keys()), time_columns)
+                )
+            else:
+                if replace_time_column not in list(row.keys()):
+                    msg = "{0} not found in column names!".format(replace_time_column)
+                    raise TimeColumnValueError(msg)
+
+                replace_time_column_key = replace_time_column
 
             row_time_column_values = [value for key, value in row.items()
                                       if key in time_columns]
@@ -348,7 +359,7 @@ class CampbellSCIBaseParser(object):
                 self._parse_time_values(*row_time_column_values, to_utc=to_utc)
             )
 
-            old_key = first_time_column_key
+            old_key = replace_time_column_key
             new_key = old_key
             if time_parsed_column:
                 new_key = time_parsed_column

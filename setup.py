@@ -19,7 +19,7 @@ setup(
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version='0.3b',
+    version='0.32b',
 
     description='Parser for Campbell Scientific dataloggers',
     #long_description=long_description,
@@ -86,7 +86,8 @@ setup(
     # installed, specify them here.  If using Python 2.6 or less, then these
     # have to be included in MANIFEST.in as well.
     package_data={
-        'campbellsciparser.tests': ['testdata/*.dat'],
+        'campbellsciparser.tests.devices': [
+             'base/data/*.dat', 'cr10/data/*.dat'],
     },
 
     # Although 'package_data' is the preferred approach, in some case you may
