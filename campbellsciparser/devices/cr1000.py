@@ -6,10 +6,10 @@ Utility for parsing and exporting data collected by Campbell Scientific CR1000 d
 
 """
 
-from campbellsciparser.devices.base import *
+from campbellsciparser.devices.crbase import *
 
 
-class CR1000Parser(CampbellSCIBaseParser):
+class CR1000Parser(CRGeneric):
     """Custom parser setup for the CR1000.
 
     CR1000 datalogger specific details:

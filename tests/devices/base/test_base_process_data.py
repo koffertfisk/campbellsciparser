@@ -9,7 +9,7 @@ from datetime import datetime
 import pytest
 import pytz
 
-from campbellsciparser.devices import CampbellSCIBaseParser
+from campbellsciparser.devices import CRGeneric
 from campbellsciparser.devices import TimeColumnValueError
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
@@ -17,28 +17,28 @@ TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 def test_data_generator():
     test_list = [1, 2, 3]
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
 
     assert tuple(baseparser._data_generator(test_list)) == (1, 2, 3)
 
 
 def test_process_rows_generator_empty():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_empty.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
 
     assert tuple(baseparser._process_rows(infile_path=file)) == ()
 
 
 def test_process_rows_generator_exceeding_line_num():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_empty.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
 
     assert tuple(baseparser._process_rows(infile_path=file, line_num=1)) == ()
 
 
 def test_process_rows_generator_three_rows():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_3_rows.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     row_1 = OrderedDict([(0, '1')])
     row_2 = OrderedDict([(0, '1'), (1, '2')])
     row_3 = OrderedDict([(0, '1'), (1, '2'), (2, '3')])
@@ -48,7 +48,7 @@ def test_process_rows_generator_three_rows():
 
 def test_process_rows_generator_three_rows_slice():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_3_rows.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     row_2 = OrderedDict([(0, '1'), (1, '2')])
     row_3 = OrderedDict([(0, '1'), (1, '2'), (2, '3')])
 
@@ -57,7 +57,7 @@ def test_process_rows_generator_three_rows_slice():
 
 def test_process_rows_generator_three_rows_headers():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_3_rows.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     headers = ['Label_' + str(i) for i in range(3)]
 
     row_1 = OrderedDict([('Label_0', '1')])
@@ -73,7 +73,7 @@ def test_process_rows_generator_three_rows_headers():
 
 def test_process_rows_generator_three_rows_indices():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_3_rows.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
 
     row_1 = OrderedDict([(0, '1')])
     row_2 = OrderedDict([(0, '1'), (1, '2')])
@@ -87,7 +87,7 @@ def test_process_rows_generator_three_rows_indices():
 
 def test_process_rows_generator_three_rows_less_headers():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_3_rows.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     headers = ['Label_0']
 
     row_1 = OrderedDict([('Label_0', '1')])
@@ -100,7 +100,7 @@ def test_process_rows_generator_three_rows_less_headers():
 
 def test_process_rows_generator_three_rows_headers_row():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_3_rows_headers.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
 
     row_1 = OrderedDict([('Label_0', '1')])
     row_2 = OrderedDict([('Label_0', '1'), ('Label_1', '2')])
@@ -112,7 +112,7 @@ def test_process_rows_generator_three_rows_headers_row():
 
 def test_read_rows_generator_three_rows():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_3_rows.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
 
     row_1 = OrderedDict([(0, '1')])
     row_2 = OrderedDict([(0, '1'), (1, '2')])
@@ -123,7 +123,7 @@ def test_read_rows_generator_three_rows():
 
 
 def test_values_to_strings():
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     row = OrderedDict([
         ('Label_0', 'string'),
         ('Label_1', datetime(2016, 1, 1, 22, 30, 0)),
@@ -138,7 +138,7 @@ def test_values_to_strings():
 
 def test_read_data_length_empty():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_empty.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     data = baseparser.read_data(infile_path=file)
 
     assert len(data) == 0
@@ -146,7 +146,7 @@ def test_read_data_length_empty():
 
 def test_read_data_ten_rows_length():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_10_rows.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     data = baseparser.read_data(infile_path=file)
 
     assert len(data) == 10
@@ -154,7 +154,7 @@ def test_read_data_ten_rows_length():
 
 def test_read_data_line_num_five_rows_length():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_10_rows.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     data = baseparser.read_data(infile_path=file, line_num=5)
 
     assert len(data) == 5
@@ -162,7 +162,7 @@ def test_read_data_line_num_five_rows_length():
 def test_read_data_ten_rows_indices():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_10_rows.dat')
     expected_headers = [i for i in range(10)]
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     data = baseparser.read_data(infile_path=file, line_num=0)
 
     for row in data:
@@ -173,7 +173,7 @@ def test_read_data_ten_rows_indices():
 def test_read_data_ten_rows_headers():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_10_rows.dat')
     headers = ['Label_' + str(i) for i in range(10)]
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     data = baseparser.read_data(infile_path=file, headers=headers, line_num=0)
 
     for row in data:
@@ -183,7 +183,7 @@ def test_read_data_ten_rows_headers():
 
 def test_read_data_three_rows_header_row():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_3_rows_headers.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     data = baseparser.read_data(infile_path=file, header_row=0, line_num=0)
     expected_headers = ['Label_' + str(i) for i in range(3)]
 
@@ -194,7 +194,7 @@ def test_read_data_three_rows_header_row():
 
 def test_read_data_convert_time_no_time_columns():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_empty.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
 
     with pytest.raises(TimeColumnValueError):
         baseparser.read_data(infile_path=file, convert_time=True)
@@ -208,7 +208,7 @@ def test_read_data_convert_time():
     time_columns = [i for i in range(6)]
     expected_datetime = datetime(2016, 1, 1, 22, 30, 15, tzinfo=pytz_time_zone)
 
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
     data = baseparser.read_data(infile_path=file, convert_time=True, time_columns=time_columns)
@@ -225,7 +225,7 @@ def test_read_data_convert_time_to_utc():
     time_columns = [i for i in range(6)]
     expected_datetime = datetime(2016, 1, 1, 21, 30, 15, tzinfo=pytz.UTC)
 
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
     data = baseparser.read_data(
@@ -244,7 +244,7 @@ def test_read_data_time_parsed_column_name():
     time_columns = [i for i in range(6)]
     expected_time_parsed_column_name = 'TIMESTAMP'
 
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
     data = baseparser.read_data(

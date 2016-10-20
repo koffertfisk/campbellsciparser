@@ -35,4 +35,4 @@ class CR10XParser(CR10Parser):
         if not time_format_args_library:
             time_format_args_library = ['%Y', '%j', '%H%M']
 
-        CampbellSCIBaseParser.__init__(self, pytz_time_zone, time_format_args_library)
+        CRGeneric.__init__(self, pytz_time_zone, time_format_args_library)

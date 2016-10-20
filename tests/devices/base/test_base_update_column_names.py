@@ -3,14 +3,14 @@
 
 import os
 
-from campbellsciparser.devices import CampbellSCIBaseParser
+from campbellsciparser.devices import CRGeneric
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
 def test_update_column_names():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_3_rows.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     headers = ['Label_' + str(i) for i in range(3)]
 
     data = baseparser.read_data(infile_path=file)
@@ -23,7 +23,7 @@ def test_update_column_names():
 
 def test_update_column_names_not_matching_row_lengths():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_3_rows.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     headers = ['Label_' + str(i) for i in range(3)]
 
     data = baseparser.read_data(infile_path=file)
@@ -36,7 +36,7 @@ def test_update_column_names_not_matching_row_lengths():
 
 def test_update_column_names_output_mismatched_rows():
     file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_3_rows.dat')
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     headers = ['Label_' + str(i) for i in range(3)]
 
     data = baseparser.read_data(infile_path=file)

@@ -8,7 +8,7 @@ Utility for parsing and exporting data collected by Campbell Scientific CR10 dat
 
 from collections import defaultdict
 
-from campbellsciparser.devices.base import *
+from campbellsciparser.devices.crbase import *
 
 
 class ArrayIdsInfoError(ValueError):
@@ -31,7 +31,7 @@ class UnsupportedTimeFormatError(ValueError):
     pass
 
 
-class CR10Parser(CampbellSCIBaseParser):
+class CR10Parser(CRGeneric):
     """Custom parser setup for the CR10.
 
     CR10 datalogger specific details:
@@ -291,7 +291,7 @@ class CR10Parser(CampbellSCIBaseParser):
                 if array_id in array_ids:
                     data_filtered[array_id] = array_id_data
         elif isinstance(data, list):
-            for row in CampbellSCIBaseParser._data_generator(data):
+            for row in CRGeneric._data_generator(data):
                 try:
                     array_id_name = list(row.values())[0]
                 except IndexError:

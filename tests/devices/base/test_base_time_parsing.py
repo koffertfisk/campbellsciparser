@@ -9,7 +9,7 @@ from datetime import datetime
 import pytest
 import pytz
 
-from campbellsciparser.devices import CampbellSCIBaseParser
+from campbellsciparser.devices import CRGeneric
 from campbellsciparser.devices import TimeColumnValueError
 from campbellsciparser.devices import TimeParsingError
 
@@ -17,7 +17,7 @@ TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
 def test_datetime_to_string_no_time_zone():
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     time_zone = 'Europe/Stockholm'
     pytz_time_zone = pytz.timezone(time_zone)
     expected_datetime = datetime(2012, 11, 25, 22, 0, 0)
@@ -29,7 +29,7 @@ def test_datetime_to_string_no_time_zone():
 
 
 def test_find_first_time_column_key():
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     headers = ['key_1', 'key_2', 'key_3']
     time_columns = ['key_1', 'key_2']
     index = baseparser._find_first_time_column_key(headers, time_columns)
@@ -38,7 +38,7 @@ def test_find_first_time_column_key():
 
 
 def test_find_first_time_column_key_raise_value_error():
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     headers = ['key_1', 'key_2', 'key_3']
     time_columns = ['key_4']
     with pytest.raises(TimeColumnValueError):
@@ -46,7 +46,7 @@ def test_find_first_time_column_key_raise_value_error():
 
 
 def test_find_first_time_column_key_raise_index_error():
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     headers = ['key_1', 'key_2', 'key_3']
     time_columns = []
     with pytest.raises(IndexError):
@@ -55,7 +55,7 @@ def test_find_first_time_column_key_raise_index_error():
 
 def test_parse_custom_time_format_less_library_args():
     time_zone = 'Europe/Stockholm'
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=[])
 
     parsing_info = baseparser._parse_custom_time_format('2016')
@@ -67,7 +67,7 @@ def test_parse_custom_time_format_less_library_args():
 
 def test_parse_custom_time_format_less_time_values():
     time_zone = 'Europe/Stockholm'
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=['%Y'])
 
     parsing_info = baseparser._parse_custom_time_format()
@@ -83,7 +83,7 @@ def test_parse_custom_time_format():
     time_values_args = ['2016', '1', '1']
     expected_parsed_time_format = ','.join(time_format_args_library)
     expected_parsed_time_values = ','.join(time_values_args)
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
     parsing_info = baseparser._parse_custom_time_format(*time_values_args)
@@ -99,7 +99,7 @@ def test_convert_time_from_data_row_already_time_zone_aware():
     pytz_time_zone = pytz.timezone(time_zone)
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S', '%z']
     time_columns = [i for i in range(7)]
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
     expected_datetime = datetime(2016, 1, 1, 22, 30, 15, tzinfo=pytz_time_zone)
@@ -118,7 +118,7 @@ def test_convert_time_from_data_row_not_already_time_zone_aware():
     pytz_time_zone = pytz.timezone(time_zone)
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S']
     time_columns = [i for i in range(6)]
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
     expected_datetime = datetime(2016, 1, 1, 22, 30, 15, tzinfo=pytz_time_zone)
@@ -136,7 +136,7 @@ def test_convert_time_from_data_row_with_column_name():
     time_zone = 'Etc/GMT-1'
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S', '%z']
     time_columns = [i for i in range(7)]
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
     data = baseparser.read_data(infile_path=file)
@@ -159,7 +159,7 @@ def test_convert_time_from_data_row_to_utc():
     time_zone = 'Etc/GMT-1'
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S', '%z']
     time_columns = [i for i in range(7)]
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
     expected_datetime = datetime(2016, 1, 1, 21, 30, 15, tzinfo=pytz.UTC)
@@ -179,7 +179,7 @@ def test_convert_time_from_data_row_replace_column():
     time_zone = 'Etc/GMT-1'
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S']
     time_columns = [i + 1 for i in range(6)]
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
     expected_datetime = datetime(2016, 1, 1, 21, 30, 15, tzinfo=pytz.UTC)
@@ -196,14 +196,14 @@ def test_convert_time_from_data_row_replace_column():
 
 def test_convert_time_no_time_columns_error():
     data = list(OrderedDict())
-    baseparser = CampbellSCIBaseParser()
+    baseparser = CRGeneric()
     with pytest.raises(TimeColumnValueError):
         baseparser.convert_time(data=data)
 
 
 def test_parse_time_values_no_values():
     time_zone = 'UTC'
-    baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone)
+    baseparser = CRGeneric(pytz_time_zone=time_zone)
     expected_dt = datetime(1900, 1, 1, 0, 0, 0, tzinfo=pytz.UTC)
     parsed_dt = baseparser._parse_time_values()
 
@@ -214,7 +214,7 @@ def test_parse_time_values_raise_parsing_error():
     time_zone = 'UTC'
     time_format_args_library = ['%NotParsable']
     time_values = ['2016-01-01 22:15:30']
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
     with pytest.raises(TimeParsingError):
@@ -227,7 +227,7 @@ def test_parse_time_values_ignore_parsing_error():
     time_values = ['2016-01-01 22:15:30']
     expected_dt = datetime(1970, 1, 1, 0, 0, 0, tzinfo=pytz.UTC)
 
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
     parsed_dt = baseparser._parse_time_values(*time_values, ignore_parsing_error=True)
@@ -240,7 +240,7 @@ def test_parse_time_values_already_localized():
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S', '%z']
     time_values = ['2016', '1', '1', '22', '15', '30', '+0100']
     expected_dt = datetime(2016, 1, 1, 22, 15, 30, tzinfo=pytz.timezone(time_zone))
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
 
     parsed_dt = baseparser._parse_time_values(*time_values)
@@ -250,7 +250,7 @@ def test_parse_time_values_already_localized():
 
 def test_parse_time_values_no_lib():
     time_zone = 'UTC'
-    baseparser = CampbellSCIBaseParser(pytz_time_zone=time_zone)
+    baseparser = CRGeneric(pytz_time_zone=time_zone)
     expected_dt = datetime(1900, 1, 1, 0, 0, 0, tzinfo=pytz.UTC)
     time_values = ['2016-01-01 22:15:30']
 
@@ -262,7 +262,7 @@ def test_parse_time_values_no_lib():
 def test_parse_time_values():
     time_zone = 'UTC'
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S']
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
     expected_dt = datetime(2016, 1, 1, 22, 15, 30, tzinfo=pytz.UTC)
     time_values = ['2016', '1', '1', '22', '15', '30']
@@ -275,7 +275,7 @@ def test_parse_time_values():
 def test_parse_time_values_to_utc():
     time_zone = 'Europe/Stockholm'
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S']
-    baseparser = CampbellSCIBaseParser(
+    baseparser = CRGeneric(
         pytz_time_zone=time_zone, time_format_args_library=time_format_args_library)
     expected_dt = datetime(2016, 1, 1, 21, 15, 30, tzinfo=pytz.UTC)
     time_values = ['2016', '1', '1', '22', '15', '30']
