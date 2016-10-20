@@ -514,28 +514,42 @@ class CRGeneric(object):
 
         Examples
         --------
+        >>> import pytz
         >>> cr = CRGeneric('Etc/GMT-1', ['%Y-%d-%m %H:%M:%S'])
         >>> data = [
         ...     OrderedDict([
         ...         ('Label_1', 'some_value'),
-        ...         ('Label_2', '2016-05-02 12:34:15'),
+        ...         ('Label_2', datetime(2016, 5, 2, 12, 34, 15, tzinfo=pytz.UTC)),
         ...         ('Label_3', 'some_other_value')
         ...     ])
         ... ]
+        >>> import tempfile
+        >>> temp_dir = tempfile.mkdtemp()
+        >>> temp_outfile = os.path.join(temp_dir, 'temp_outfile.dat')
+        >>> cr.export_to_csv(data, temp_outfile, export_header=True)
+        >>> exported_data = cr.read_data(temp_outfile, header_row=0)
+        >>> exported_data
+        [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 12:34:15'),
+        ('Label_3', 'some_other_value')])]
+        >>>
+        >>>
+        >>> import shutil
+        >>> shutil.rmtree(temp_dir)
 
 
 
         """
+        data_to_export = data
         os.makedirs(os.path.dirname(outfile_path), exist_ok=True)
 
         if os.path.exists(outfile_path) and export_header:
-            with open(outfile_path, 'r') as temp_f:
-                f_list = [line.strip() for line in temp_f]
+            with open(outfile_path, 'r') as f:
+                f_list = [line.strip() for line in f]
             if len(f_list) > 0:
                 export_header = False
 
         with open(outfile_path, mode) as f_out:
-            for row in CRGeneric._data_generator(data):
+            for row in CRGeneric._data_generator(data_to_export):
                 if export_header:
                     header = [str(key) for key in row.keys()]
                     f_out.write(",".join(header) + "\n")
