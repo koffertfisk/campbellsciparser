@@ -434,7 +434,7 @@ class CRGeneric(object):
         [OrderedDict([(0, 'some_value'), (1, datetime.datetime(2016, 5, 2, 12, 34,
         tzinfo=<StaticTzInfo 'Etc/GMT-1'>)), (4, 'some_other_value')])]
 
-        >>> cr = CRGeneric('Etc/GMT-1', ['%Y-%d-%m %H:%M:%S'])
+        >>> cr = CRGeneric('Etc/GMT-1', ['%Y-%m-%d %H:%M:%S'])
         >>> data = [
         ...     OrderedDict([
         ...         ('Label_1', 'some_value'),
@@ -444,8 +444,8 @@ class CRGeneric(object):
         ... ]
         >>> cr.convert_time(
         ...     data, time_parsed_column='TIMESTAMP', time_columns=['Label_2'], to_utc=True)
-        [OrderedDict([('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 2,
-        5, 11, 34, 15, tzinfo=<UTC>)), ('Label_3', 'some_other_value')])]
+        [OrderedDict([('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5,
+        2, 11, 34, 15, tzinfo=<UTC>)), ('Label_3', 'some_other_value')])]
 
         Raises
         ------
@@ -528,6 +528,7 @@ class CRGeneric(object):
         ...         ('Label_3', 'some_other_value')
         ...     ])
         ... ]
+
         >>> cr.export_to_csv(data, temp_outfile, export_header=True)
         >>> exported_data = cr.read_data(temp_outfile, header_row=0)
         >>> exported_data
@@ -540,7 +541,7 @@ class CRGeneric(object):
         [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 12:34:15'),
         ('Label_3', 'some_other_value')]), OrderedDict([('Label_1', 'some_value'),
         ('Label_2', '2016-05-02 12:34:15+0000'), ('Label_3', 'some_other_value')])]
-        
+
         >>> shutil.rmtree(temp_dir)
 
         """
@@ -597,6 +598,66 @@ class CRGeneric(object):
         list of OrderedDict
             All data found from the given line number onwards.
 
+        Examples
+        --------
+        >>> import pytz
+        >>> import shutil
+        >>> import tempfile
+        >>> temp_dir = tempfile.mkdtemp()
+        >>> temp_outfile = os.path.join(temp_dir, 'temp_outfile.dat')
+
+        >>> cr = CRGeneric('UTC', ['%Y-%m-%d %H:%M:%S'])
+        >>> data = [
+        ...     OrderedDict([
+        ...         ('Label_1', 'some_value'),
+        ...         ('Label_2', datetime(2016, 5, 2, i, 34, 15, tzinfo=pytz.UTC)),
+        ...         ('Label_3', 'some_other_value')])
+        ...     for i in range(20)
+        ... ]
+        >>> cr.export_to_csv(data, temp_outfile, export_header=True)
+
+        >>> exported_data = cr.read_data(temp_outfile, header_row=0)
+        >>> exported_data[:3]
+        [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 00:34:15'),
+        ('Label_3', 'some_other_value')]), OrderedDict([('Label_1', 'some_value'),
+        ('Label_2', '2016-05-02 01:34:15'), ('Label_3', 'some_other_value')]),
+        OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 02:34:15'),
+        ('Label_3', 'some_other_value')])]
+
+        >>> new_column_names = ['New_Label_1', 'New_Label_2', 'New_Label_3']
+        >>> exported_data = cr.read_data(temp_outfile, header=new_column_names, line_num=1)
+        >>> exported_data[:3]
+        [OrderedDict([('New_Label_1', 'some_value'), ('New_Label_2', '2016-05-02 00:34:15'),
+        ('New_Label_3', 'some_other_value')]), OrderedDict([('New_Label_1', 'some_value'),
+        ('New_Label_2', '2016-05-02 01:34:15'), ('New_Label_3', 'some_other_value')]),
+        OrderedDict([('New_Label_1', 'some_value'), ('New_Label_2', '2016-05-02 02:34:15'),
+        ('New_Label_3', 'some_other_value')])]
+
+        >>> exported_data = cr.read_data(temp_outfile, header_row=0, line_num=18)
+        >>> exported_data
+        [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 17:34:15'),
+        ('Label_3', 'some_other_value')]), OrderedDict([('Label_1', 'some_value'),
+        ('Label_2', '2016-05-02 18:34:15'), ('Label_3', 'some_other_value')]),
+        OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 19:34:15'),
+        ('Label_3', 'some_other_value')])]
+
+        >>> exported_data = cr.read_data(
+        ... temp_outfile,
+        ... header_row=0,
+        ... convert_time=True,
+        ... time_parsed_column='TIMESTAMP',
+        ... time_columns=['Label_2']
+        ... )
+        >>> exported_data[:3]
+        [OrderedDict([('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5,
+        2, 0, 34, 15, tzinfo=<UTC>)), ('Label_3', 'some_other_value')]), OrderedDict([
+        ('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, 1, 34, 15,
+        tzinfo=<UTC>)), ('Label_3', 'some_other_value')]), OrderedDict([('Label_1',
+        'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, 2, 34, 15, tzinfo=<UTC>)),
+        ('Label_3', 'some_other_value')])]
+
+        >>> shutil.rmtree(temp_dir)
+
         """
         data = [row for row in self._read_data(
             infile_path=infile_path,
@@ -634,9 +695,40 @@ class CRGeneric(object):
 
         Returns
         -------
-        namedtuple
+        list of OrderedDict or namedtuple
             Data set with updated column names. If get_mismatched_row_lengths is true,
-            return a list of rows that did not pass the "match row lengths" test.
+            return also a list of rows that did not pass the "match row lengths" test.
+            The results will in the latter case be packed in a namedtuple.
+
+        Examples
+        --------
+        >>> cr = CRGeneric()
+        >>> data = [
+        ...     OrderedDict([
+        ...         ('Label_1', 'some_value'),
+        ...         ('Label_2', datetime(2016, 5, 2, 12, 34, 15, tzinfo=pytz.UTC)),
+        ...         ('Label_3', 'some_other_value')])
+        ... ]
+
+        >>> new_column_names = ['New_Label_1', 'New_Label_2', 'New_Label_3']
+        >>> data_new_column_names = cr.update_column_names(data, column_names=new_column_names)
+        >>> data_new_column_names
+        [OrderedDict([('New_Label_1', 'some_value'), ('New_Label_2', datetime.datetime(2016,
+        5, 2, 12, 34, 15, tzinfo=<UTC>)), ('New_Label_3', 'some_other_value')])]
+
+        >>> data.append(OrderedDict([
+        ...     ('Label_1', 'some_value'), ('Label_2', 'some_other_value')]))
+        >>> new_column_names_result = cr.update_column_names(
+        ... data, column_names=new_column_names, get_mismatched_row_lengths=True)
+        >>> new_column_names_result
+        UpdatedColumnNamesResult(data_updated_column_names=[OrderedDict([('New_Label_1',
+        'some_value'), ('New_Label_2', 'some_other_value')])],
+        data_mismatched_row_lengths=[OrderedDict([('Label_1', 'some_value')])])
+        >>> data_new_column_names, data_mismatched_rows = new_column_names_result
+        >>> data_new_column_names
+        [OrderedDict([('New_Label_1', 'some_value'), ('New_Label_2', 'some_other_value')])]
+        >>> data_mismatched_rows
+        [OrderedDict([('Label_1', 'some_value')])]
 
         """
         data_updated_column_names = []
@@ -665,4 +757,4 @@ class CRGeneric(object):
             return updated_column_names_result(
                 data_updated_column_names, data_mismatched_row_lengths)
 
-        return updated_column_names_result(data_updated_column_names, None)
+        return data_updated_column_names
