@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 """
-CampbellSCIBaseParser
+CRGeneric
 ---------------------
-Base utility for parsing and exporting data collected by Campbell Scientific CR-type
-dataloggers.
+Generic base parser that provides common utilities for parsing and exporting data
+outputted by Campbell Scientific CR-type dataloggers.
 
 """
 import csv
