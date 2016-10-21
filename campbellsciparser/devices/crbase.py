@@ -515,6 +515,11 @@ class CRGeneric(object):
         Examples
         --------
         >>> import pytz
+        >>> import shutil
+        >>> import tempfile
+        >>> temp_dir = tempfile.mkdtemp()
+        >>> temp_outfile = os.path.join(temp_dir, 'temp_outfile.dat')
+
         >>> cr = CRGeneric()
         >>> data = [
         ...     OrderedDict([
@@ -523,21 +528,19 @@ class CRGeneric(object):
         ...         ('Label_3', 'some_other_value')
         ...     ])
         ... ]
-        >>> import tempfile
-        >>> temp_dir = tempfile.mkdtemp()
-        >>> temp_outfile = os.path.join(temp_dir, 'temp_outfile.dat')
         >>> cr.export_to_csv(data, temp_outfile, export_header=True)
         >>> exported_data = cr.read_data(temp_outfile, header_row=0)
         >>> exported_data
         [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 12:34:15'),
         ('Label_3', 'some_other_value')])]
+
         >>> cr.export_to_csv(data, temp_outfile, include_time_zone=True)
         >>> exported_data = cr.read_data(temp_outfile, header_row=0)
         >>> exported_data
         [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 12:34:15'),
         ('Label_3', 'some_other_value')]), OrderedDict([('Label_1', 'some_value'),
         ('Label_2', '2016-05-02 12:34:15+0000'), ('Label_3', 'some_other_value')])]
-        >>> import shutil
+        
         >>> shutil.rmtree(temp_dir)
 
         """
