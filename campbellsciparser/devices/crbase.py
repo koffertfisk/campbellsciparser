@@ -494,7 +494,7 @@ class CRGeneric(object):
 
         return data_converted
 
-    def export_to_csv(self, data, outfile_path, export_header=False, mode='a',
+    def export_to_csv(self, data, outfile_path, export_header=False, mode='a+',
                       include_time_zone=False):
         """Write data set to a CSV file.
 
@@ -507,7 +507,7 @@ class CRGeneric(object):
         export_header : bool, optional
             Write file header at the top of the output file.
         mode : str, optional
-            Output file open mode, defaults to append. See Python Docs for other
+            Output file open mode, defaults to a+. See Python Docs for other
             mode options.
         include_time_zone : bool, optional
             Include time zone in string converted datetime values.
@@ -515,7 +515,7 @@ class CRGeneric(object):
         Examples
         --------
         >>> import pytz
-        >>> cr = CRGeneric('Etc/GMT-1', ['%Y-%d-%m %H:%M:%S'])
+        >>> cr = CRGeneric()
         >>> data = [
         ...     OrderedDict([
         ...         ('Label_1', 'some_value'),
@@ -531,15 +531,19 @@ class CRGeneric(object):
         >>> exported_data
         [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 12:34:15'),
         ('Label_3', 'some_other_value')])]
-        >>>
-        >>>
+        >>> cr.export_to_csv(data, temp_outfile, include_time_zone=True)
+        >>> exported_data = cr.read_data(temp_outfile, header_row=0)
+        >>> exported_data
+        [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 12:34:15'),
+        ('Label_3', 'some_other_value')]), OrderedDict([('Label_1', 'some_value'),
+        ('Label_2', '2016-05-02 12:34:15+0000'), ('Label_3', 'some_other_value')])]
         >>> import shutil
         >>> shutil.rmtree(temp_dir)
 
-
-
         """
-        data_to_export = data
+        data_to_export = [
+            OrderedDict([(name, value) for name, value in row.items()]) for row in data]
+
         os.makedirs(os.path.dirname(outfile_path), exist_ok=True)
 
         if os.path.exists(outfile_path) and export_header:
@@ -591,16 +595,21 @@ class CRGeneric(object):
             All data found from the given line number onwards.
 
         """
-        data = [row for row
-                in self._read_data(
-                    infile_path=infile_path,
-                    header=header,
-                    header_row=header_row,
-                    line_num=line_num)]
+        data = [row for row in self._read_data(
+            infile_path=infile_path,
+            header=header,
+            header_row=header_row,
+            line_num=line_num
+        )]
 
         if convert_time:
-            data = self.convert_time(data=data, time_parsed_column=time_parsed_column,
-                                     time_columns=time_columns, to_utc=to_utc)
+            data = self.convert_time(
+                data=data,
+                time_parsed_column=time_parsed_column,
+                time_columns=time_columns,
+                to_utc=to_utc
+            )
+
         return data
 
     @staticmethod
