@@ -3,7 +3,7 @@
 
 import os
 
-from campbellsciparser.devices import CR10Parser
+from campbellsciparser import cr
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -21,17 +21,15 @@ def assert_two_data_sets_equal(list_1, list_2):
 
 
 def test_empty():
-    file = os.path.join(TEST_DATA_DIR, 'csv_cr10_testdata_empty.dat')
-    cr10 = CR10Parser()
-    data = cr10.read_array_ids_data(infile_path=file)
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_empty.dat')
+    data = cr.read_array_ids_data(infile_path=file)
 
     assert len(data) == 0
 
 
 def test_length_ten_rows():
-    file = os.path.join(TEST_DATA_DIR, 'csv_cr10_testdata_10_rows.dat')
-    cr10 = CR10Parser()
-    data = cr10.read_array_ids_data(infile_path=file)
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
+    data = cr.read_array_ids_data(infile_path=file)
     data_mixed = [row for array_id, array_id_data in data.items()
                   for row in array_id_data]
 
@@ -39,11 +37,10 @@ def test_length_ten_rows():
 
 
 def test_compare_length_ten_rows():
-    file = os.path.join(TEST_DATA_DIR, 'csv_cr10_testdata_10_rows.dat')
-    cr10 = CR10Parser()
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
 
-    data_mixed = cr10.read_mixed_data(infile_path=file)
-    data_split = cr10.read_array_ids_data(infile_path=file)
+    data_mixed = cr.read_mixed_array_data(infile_path=file)
+    data_split = cr.read_array_ids_data(infile_path=file)
     data_split_merged = [row for array_id, array_id_data in data_split.items()
                          for row in array_id_data]
 
@@ -51,11 +48,10 @@ def test_compare_length_ten_rows():
 
 
 def test_compare_data_ten_rows():
-    file = os.path.join(TEST_DATA_DIR, 'csv_cr10_testdata_10_rows.dat')
-    cr10 = CR10Parser()
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
 
-    data_mixed = cr10.read_mixed_data(infile_path=file)
-    data_split = cr10.read_array_ids_data(infile_path=file)
+    data_mixed = cr.read_mixed_array_data(infile_path=file)
+    data_split = cr.read_array_ids_data(infile_path=file)
     data_split_merged = [row for array_id, array_id_data in data_split.items()
                          for row in array_id_data]
 
@@ -63,14 +59,13 @@ def test_compare_data_ten_rows():
 
 
 def test_compare_data_ten_rows_lookup():
-    file = os.path.join(TEST_DATA_DIR, 'csv_cr10_testdata_10_rows.dat')
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
     array_ids_names = {
         '201': 'label_1', '203': 'label_2', '204': 'label_3', '210': 'label_4'
     }
-    cr10 = CR10Parser()
 
-    data_mixed = cr10.read_mixed_data(infile_path=file)
-    data_split_translated = cr10.read_array_ids_data(
+    data_mixed = cr.read_mixed_array_data(infile_path=file)
+    data_split_translated = cr.read_array_ids_data(
         infile_path=file, array_id_names=array_ids_names)
 
     data_split_translated_merged = [

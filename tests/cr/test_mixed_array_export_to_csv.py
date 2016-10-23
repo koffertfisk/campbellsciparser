@@ -6,7 +6,7 @@ import shutil
 
 import pytest
 
-from campbellsciparser.devices import CR10Parser
+from campbellsciparser import cr
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -29,57 +29,52 @@ def delete_output(file_path):
 
 
 def test_export_array_ids_to_csv_empty_library():
-    file = os.path.join(TEST_DATA_DIR, 'csv_cr10_testdata_10_rows.dat')
-    cr10 = CR10Parser()
-    data_split = cr10.read_array_ids_data(infile_path=file)
-    with pytest.raises(ValueError):
-        cr10.export_array_ids_to_csv(data=data_split, array_ids_info={})
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
+    data_split = cr.read_array_ids_data(infile_path=file)
+    with pytest.raises(cr.ArrayIdsInfoError):
+        cr.export_array_ids_to_csv(data=data_split, array_ids_info={})
 
 
 def test_export_array_ids_to_csv_empty_info():
-    file = os.path.join(TEST_DATA_DIR, 'csv_cr10_testdata_10_rows.dat')
-    cr10 = CR10Parser()
-    data_split = cr10.read_array_ids_data(infile_path=file)
-    with pytest.raises(ValueError):
-        cr10.export_array_ids_to_csv(data=data_split, array_ids_info={'201': None})
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
+    data_split = cr.read_array_ids_data(infile_path=file)
+    with pytest.raises(cr.ArrayIdsExportInfoError):
+        cr.export_array_ids_to_csv(data=data_split, array_ids_info={'201': None})
 
 
 def test_export_array_ids_to_csv_no_file_path():
-    file = os.path.join(TEST_DATA_DIR, 'csv_cr10_testdata_10_rows.dat')
-    cr10 = CR10Parser()
-    data_split = cr10.read_array_ids_data(infile_path=file)
-    with pytest.raises(ValueError):
-        cr10.export_array_ids_to_csv(data=data_split, array_ids_info={'201': {}})
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
+    data_split = cr.read_array_ids_data(infile_path=file)
+    with pytest.raises(cr.ArrayIdsExportInfoError):
+        cr.export_array_ids_to_csv(data=data_split, array_ids_info={'201': {}})
 
 
 def test_export_array_ids_to_csv_content():
-    file = os.path.join(TEST_DATA_DIR, 'csv_cr10_testdata_10_rows.dat')
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
     output_file = os.path.join(TEST_DATA_DIR, 'testoutput/test.dat')
-    cr10 = CR10Parser()
 
-    data_split_unfiltered = cr10.read_array_ids_data(infile_path=file)
-    data_split_filtered = cr10.filter_data_by_array_ids(data_split_unfiltered, '201')
+    data_split_unfiltered = cr.read_array_ids_data(infile_path=file)
+    data_split_filtered = cr.filter_data_by_array_ids(data_split_unfiltered, '201')
     data_split_array_id_filtered = data_split_filtered.get('201')
 
-    cr10.export_array_ids_to_csv(
+    cr.export_array_ids_to_csv(
         data=data_split_unfiltered,
         array_ids_info={'201': {'file_path': output_file}})
 
-    data_exported_file = cr10.read_mixed_data(infile_path=output_file)
+    data_exported_file = cr.read_mixed_array_data(infile_path=output_file)
 
     assert_two_data_sets_equal(data_split_array_id_filtered, data_exported_file)
 
     delete_output(output_file)
 
 
-def test_export_array_ids_to_csv_headers():
-    file = os.path.join(TEST_DATA_DIR, 'csv_cr10_testdata_10_rows.dat')
+def test_export_array_ids_to_csv_column_names():
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
     output_file_1 = os.path.join(TEST_DATA_DIR, 'testoutput/test_1.dat')
     output_file_2 = os.path.join(TEST_DATA_DIR, 'testoutput/test_2.dat')
-    cr10 = CR10Parser()
 
-    data_split_unfiltered = cr10.read_array_ids_data(infile_path=file)
-    data_split_filtered = cr10.filter_data_by_array_ids(
+    data_split_unfiltered = cr.read_array_ids_data(infile_path=file)
+    data_split_filtered = cr.filter_data_by_array_ids(
         data_split_unfiltered, '201', '203')
 
     data_split_filtered_201 = data_split_filtered.get('201')
@@ -97,11 +92,11 @@ def test_export_array_ids_to_csv_headers():
     array_id_info_2 = {'file_path': output_file_2}
     array_ids_info = {'201': array_id_info_1, '203': array_id_info_2}
 
-    cr10.export_array_ids_to_csv(
-        data=data_split_filtered, array_ids_info=array_ids_info, export_headers=True)
+    cr.export_array_ids_to_csv(
+        data=data_split_filtered, array_ids_info=array_ids_info, export_header=True)
 
-    data_exported_file_1 = cr10.read_mixed_data(infile_path=output_file_1)
-    data_exported_file_2 = cr10.read_mixed_data(infile_path=output_file_2)
+    data_exported_file_1 = cr.read_mixed_array_data(infile_path=output_file_1)
+    data_exported_file_2 = cr.read_mixed_array_data(infile_path=output_file_2)
 
     data_exported_file_1_headers_row = data_exported_file_1[0]
     data_exported_file_1_headers = [value for value
@@ -117,28 +112,27 @@ def test_export_array_ids_to_csv_headers():
     delete_output(output_file_1)
 
 
-def test_export_array_ids_to_csv_updated_headers():
-    file = os.path.join(TEST_DATA_DIR, 'csv_cr10_testdata_10_rows.dat')
+def test_export_array_ids_to_csv_updated_column_names():
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
     output_file = os.path.join(TEST_DATA_DIR, 'testoutput/test.dat')
-    cr10 = CR10Parser()
 
-    data_split_unfiltered = cr10.read_array_ids_data(infile_path=file)
-    data_split_filtered = cr10.filter_data_by_array_ids(data_split_unfiltered, '203')
+    data_split_unfiltered = cr.read_array_ids_data(infile_path=file)
+    data_split_filtered = cr.filter_data_by_array_ids(data_split_unfiltered, '203')
     data_split_array_id_filtered = data_split_filtered.get('203')
 
-    headers = ['Array_Id', 'Year', 'Day', 'Hour/Minute', 'Wind_Speed', 'Wind_Direction']
-    data_updated_headers = cr10.update_column_names(
-        data=data_split_array_id_filtered, headers=headers)
+    column_names = ['Array_Id', 'Year', 'Day', 'Hour/Minute', 'Wind_Speed', 'Wind_Direction']
+    data_updated_headers = cr.update_column_names(
+        data=data_split_array_id_filtered, column_names=column_names)
 
     array_ids_info = {'203': {'file_path': output_file}}
-    cr10.export_array_ids_to_csv(
-        data=data_updated_headers, array_ids_info=array_ids_info, export_headers=True)
+    cr.export_array_ids_to_csv(
+        data=data_updated_headers, array_ids_info=array_ids_info, export_header=True)
 
-    data_exported_file = cr10.read_mixed_data(infile_path=output_file)
-    data_headers_updated_first_row = data_exported_file[0]
-    data_headers_updated_headers = [value for value
-                                    in data_headers_updated_first_row.values()]
+    data_exported_file = cr.read_mixed_array_data(infile_path=output_file)
+    data_updated_column_names_first_row = data_exported_file[0]
+    data_updated_column_names = [value for value
+                                    in data_updated_column_names_first_row.values()]
 
-    assert_two_lists_equal(headers, data_headers_updated_headers)
+    assert_two_lists_equal(column_names, data_updated_column_names)
 
     delete_output(output_file)

@@ -3,7 +3,7 @@
 
 import os
 
-from campbellsciparser.devices import CR10Parser
+from campbellsciparser import cr
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -21,12 +21,11 @@ def assert_two_data_sets_equal(list_1, list_2):
 
 
 def test_filter_array_ids_data_no_filter():
-    file = os.path.join(TEST_DATA_DIR, 'csv_cr10_testdata_10_rows.dat')
-    cr10 = CR10Parser()
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
 
-    data_mixed = cr10.read_mixed_data(infile_path=file)
-    data_split = cr10.read_array_ids_data(infile_path=file)
-    data_filtered = cr10.filter_data_by_array_ids(data=data_split)
+    data_mixed = cr.read_mixed_array_data(infile_path=file)
+    data_split = cr.read_array_ids_data(infile_path=file)
+    data_filtered = cr.filter_data_by_array_ids(data=data_split)
     data_split_merged = [row for array_id, array_id_data in data_filtered.items()
                          for row in array_id_data]
 
@@ -34,12 +33,11 @@ def test_filter_array_ids_data_no_filter():
 
 
 def test_filter_array_ids_data_filter_all():
-    file = os.path.join(TEST_DATA_DIR, 'csv_cr10_testdata_10_rows.dat')
-    cr10 = CR10Parser()
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
 
-    data_mixed = cr10.read_mixed_data(infile_path=file)
-    data_split = cr10.read_array_ids_data(infile_path=file)
-    data_split_filtered = cr10.filter_data_by_array_ids(
+    data_mixed = cr.read_mixed_array_data(infile_path=file)
+    data_split = cr.read_array_ids_data(infile_path=file)
+    data_split_filtered = cr.filter_data_by_array_ids(
         data_split, '201', '203', '204', '210')
 
     data_split_merged = [row for array_id, array_id_data in data_split_filtered.items()
@@ -50,16 +48,14 @@ def test_filter_array_ids_data_filter_all():
 
 def test_filter_array_ids_data_filter():
     file_unfiltered = os.path.join(
-        TEST_DATA_DIR, 'csv_cr10_testdata_10_rows.dat')
+        TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
 
     file_filtered = os.path.join(
-        TEST_DATA_DIR, 'csv_cr10_testdata_filtered_rows.dat')
+        TEST_DATA_DIR, 'csv_testdata_mixed_array_filtered_rows.dat')
 
-    cr10 = CR10Parser()
-
-    data_pre_filtered = cr10.read_mixed_data(infile_path=file_filtered)
-    data_split_unfiltered = cr10.read_array_ids_data(infile_path=file_unfiltered)
-    data_split_filtered = cr10.filter_data_by_array_ids(
+    data_pre_filtered = cr.read_mixed_array_data(infile_path=file_filtered)
+    data_split_unfiltered = cr.read_array_ids_data(infile_path=file_unfiltered)
+    data_split_filtered = cr.filter_data_by_array_ids(
         data_split_unfiltered, '201', '203')
 
     data_split_filtered_merged = [

@@ -9,7 +9,7 @@ from datetime import datetime
 
 import pytz
 
-from campbellsciparser.devices import CRGeneric
+from campbellsciparser import cr
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -28,43 +28,39 @@ def delete_output(file_path):
 
 
 def test_export_to_csv_file_created():
-    file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_10_rows.dat')
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_10_rows.dat')
     output_file = os.path.join(TEST_DATA_DIR, 'testoutput/test.dat')
-    baseparser = CRGeneric()
 
-    data = baseparser.read_data(infile_path=file)
-    baseparser.export_to_csv(data=data, outfile_path=output_file)
+    data = cr.read_table_data(infile_path=file)
+    cr.export_to_csv(data=data, outfile_path=output_file)
 
     assert os.path.exists(output_file)
     delete_output(output_file)
 
 
 def test_export_to_csv_file_content():
-    file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_10_rows.dat')
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_10_rows.dat')
     output_file = os.path.join(TEST_DATA_DIR, 'testoutput/test.dat')
-    baseparser = CRGeneric()
 
-    data_source_file = baseparser.read_data(infile_path=file)
-    baseparser.export_to_csv(data=data_source_file, outfile_path=output_file)
-    data_exported_file = baseparser.read_data(infile_path=output_file)
+    data_source_file = cr.read_table_data(infile_path=file)
+    cr.export_to_csv(data=data_source_file, outfile_path=output_file)
+    data_exported_file = cr.read_table_data(infile_path=output_file)
 
     assert_two_data_sets_equal(data_source_file, data_exported_file)
     delete_output(output_file)
 
 
 def test_export_to_csv_file_headers():
-    file = os.path.join(TEST_DATA_DIR, 'csv_base_testdata_10_rows.dat')
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_10_rows.dat')
     output_file = os.path.join(TEST_DATA_DIR, 'testoutput/test.dat')
-    baseparser = CRGeneric()
-    headers = ['Label_' + str(i) for i in range(3)]
+    header = ['Label_' + str(i) for i in range(3)]
 
-    data_source_file = baseparser.read_data(infile_path=file, headers=headers)
-    baseparser.export_to_csv(data=data_source_file, outfile_path=output_file,
-                             export_headers=True)
-    data_exported_file = baseparser.read_data(infile_path=output_file, header_row=0)
+    data_source_file = cr.read_table_data(infile_path=file, header=header)
+    cr.export_to_csv(data=data_source_file, outfile_path=output_file, export_header=True)
+    data_exported_file = cr.read_table_data(infile_path=output_file, header_row=0)
 
     for row in data_exported_file:
-        for exported_row_name, expected_row_name in zip(list(row.keys()), headers):
+        for exported_row_name, expected_row_name in zip(list(row.keys()), header):
             assert exported_row_name == expected_row_name
 
     delete_output(output_file)
@@ -77,15 +73,14 @@ def test_export_to_csv_file_time_zone():
     data = [OrderedDict([('TIMESTAMP', dt)])]
 
     output_file = os.path.join(TEST_DATA_DIR, 'testoutput/test.dat')
-    baseparser = CRGeneric(pytz_time_zone=time_zone)
 
-    baseparser.export_to_csv(
+    cr.export_to_csv(
         data=data,
         outfile_path=output_file,
-        export_headers=True,
+        export_header=True,
         include_time_zone=True)
 
-    data_exported_file = baseparser.read_data(infile_path=output_file, header_row=0)
+    data_exported_file = cr.read_table_data(infile_path=output_file, header_row=0)
 
     data_exported_file_first_row = data_exported_file[0]
     exported_time_str = data_exported_file_first_row.get('TIMESTAMP')
@@ -106,15 +101,14 @@ def test_export_to_csv_file_no_time_zone():
     data = [OrderedDict([('TIMESTAMP', dt)])]
 
     output_file = os.path.join(TEST_DATA_DIR, 'testoutput/test.dat')
-    baseparser = CRGeneric(pytz_time_zone=time_zone)
 
-    baseparser.export_to_csv(
+    cr.export_to_csv(
         data=data,
         outfile_path=output_file,
-        export_headers=True,
+        export_header=True,
         include_time_zone=False)
 
-    data_exported_file = baseparser.read_data(infile_path=output_file, header_row=0)
+    data_exported_file = cr.read_table_data(infile_path=output_file, header_row=0)
 
     data_exported_file_first_row = data_exported_file[0]
     exported_time_str = data_exported_file_first_row.get('TIMESTAMP')
