@@ -684,6 +684,25 @@ def export_to_csv(data, outfile_path, export_header=False, mode='a+',
             f_out.write(",".join(_values_to_strings(row, include_time_zone)) + "\n")
 
 
+def extract_columns_data(data, *column_names, **time_range):
+    #TODO Finish function
+    """Extract data from specific column(s).
+
+    Parameters
+    ----------
+    data : list of OrderedDict
+        Data set to extract from.
+    *column_names : Column(s) to extract. If no arguments are given, return the entire
+        data set.
+    **time_range : Extract data from, to or between timestamps. If this mode is used, the
+        data set must be time converted.
+
+    Returns
+    -------
+
+    """
+
+
 def filter_mixed_array_data(data, *array_ids):
     """Filter mixed array data set by array ids.
 
