@@ -8,7 +8,7 @@ Campbell Scientific CR-type dataloggers.
 
 """
 import csv
-import os.path
+import os
 
 from collections import defaultdict, namedtuple, OrderedDict
 from datetime import datetime
@@ -16,19 +16,18 @@ from datetime import datetime
 import pytz
 
 
-class ArrayIdsInfoError(Exception):
+class ArrayIdsInfoValueError(Exception):
+    """Raised whenever the given array ids info is insufficient. """
     pass
 
 
 class ArrayIdsExportInfoError(Exception):
+    """Raised whenever information provided for mixed array exporting is insufficient. """
     pass
 
 
-class ArrayIdsFilePathError(Exception):
-    pass
-
-
-class DataTypeError(Exception):
+class DataSetTypeError(Exception):
+    """Raised whenever an unsupported data set format is provided. """
     pass
 
 
@@ -48,10 +47,6 @@ class TimeParsingError(Exception):
 
 class UnknownPytzTimeZoneError(Exception):
     """Raised whenever a given time zone is not a valid pytz time zone. """
-    pass
-
-
-class UnsupportedTimeFormatError(Exception):
     pass
 
 
@@ -155,6 +150,7 @@ def _parse_custom_time_formats(time_format_args_library, *time_values):
     found_time_values = []
 
     for format_arg, time_arg in zip(time_format_args_library, time_values):
+        # Handle custom time formats here
         if format_arg == '%H%M':
             time_arg = _parse_hourminute(time_arg)
         found_time_format_args.append(format_arg)
@@ -187,9 +183,10 @@ def _parse_hourminute(hour_minute_str):
     CR time string: '2345'
     HHMM time string: '2345'
 
-    Args
-    ----
-    hour_minute_str (str): Hour/Minute string to be parsed.
+    Parameters
+    ----------
+    hour_minute_str : str
+        Hour/Minute string to be parsed.
 
     Returns
     -------
@@ -321,8 +318,9 @@ def _process_mixed_array_rows(infile_path, first_line_num=0, last_line_num=None,
                 yield OrderedDict([(i, value) for i, value in enumerate(row)])
 
 
-def _process_table_rows(infile_path, header=None, header_row=None, first_line_num=0, last_line_num=None):
-    """Iterator for _read_data.
+def _process_table_rows(infile_path, header=None, header_row=None, first_line_num=0,
+                        last_line_num=None):
+    """Iterator for _read_table_data.
 
     Parameters
     ----------
@@ -366,8 +364,9 @@ def _process_table_rows(infile_path, header=None, header_row=None, first_line_nu
                     yield OrderedDict([(i, value) for i, value in enumerate(row)])
 
 
-def _read_table_data(infile_path, header=None, header_row=None, first_line_num=0, last_line_num=None):
-    """Iterate over data read from given file starting at a given line number.
+def _read_table_data(infile_path, header=None, header_row=None, first_line_num=0,
+                     last_line_num=None):
+    """Iterate over data read from a CSV file starting at a given line number.
 
     Parameters
     ----------
@@ -395,7 +394,7 @@ def _read_table_data(infile_path, header=None, header_row=None, first_line_num=0
 
 
 def _read_mixed_array_data(infile_path, first_line_num=0, last_line_num=None, fix_floats=True):
-    """Iterate over mixed data read from given file starting at a given line number.
+    """Iterate over mixed data read from given a CSV file starting at a given line number.
 
     Parameters
     ----------
@@ -449,8 +448,7 @@ def _values_to_strings(row, include_time_zone=False):
 def convert_time(data, time_zone, time_format_args_library, time_columns,
                  time_parsed_column=None, replace_time_column=None, to_utc=False):
     """
-    Converts specific time columns from a data set into a single column with the
-    time converted to a datetime object.
+    Converts specific time columns from a data set into a datetime object.
 
     Parameters
     ----------
@@ -482,7 +480,6 @@ def convert_time(data, time_zone, time_format_args_library, time_columns,
 
     Examples
     --------
-    >>> cr = CRGeneric('Etc/GMT-1', ['%Y', '%j', '%H%M'])
     >>> data = [
     ...     OrderedDict([
     ...         (0, 'some_value'),
@@ -492,11 +489,12 @@ def convert_time(data, time_zone, time_format_args_library, time_columns,
     ...         (4, 'some_other_value')
     ...     ])
     ... ]
-    >>> cr.convert_time(data, time_columns=[1, 2, 3])
-    [OrderedDict([(0, 'some_value'), (1, datetime.datetime(2016, 5, 2, 12, 34,
-    tzinfo=<StaticTzInfo 'Etc/GMT-1'>)), (4, 'some_other_value')])]
+    >>> convert_time(data=data, time_zone='Etc/GMT-1',
+    ...     time_format_args_library=['%Y', '%j', '%H%M'], time_columns=[1, 2, 3])
+    [OrderedDict([(0, 'some_value'), \
+(1, datetime.datetime(2016, 5, 2, 12, 34, tzinfo=<StaticTzInfo 'Etc/GMT-1'>)), \
+(4, 'some_other_value')])]
 
-    >>> cr = CRGeneric('Etc/GMT-1', ['%Y-%m-%d %H:%M:%S'])
     >>> data = [
     ...     OrderedDict([
     ...         ('Label_1', 'some_value'),
@@ -504,10 +502,11 @@ def convert_time(data, time_zone, time_format_args_library, time_columns,
     ...         ('Label_3', 'some_other_value')
     ...     ])
     ... ]
-    >>> cr.convert_time(
-    ...     data, time_parsed_column='TIMESTAMP', time_columns=['Label_2'], to_utc=True)
-    [OrderedDict([('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5,
-    2, 11, 34, 15, tzinfo=<UTC>)), ('Label_3', 'some_other_value')])]
+    >>> convert_time(
+    ...     data, time_zone='Etc/GMT-1', time_format_args_library=['%Y-%m-%d %H:%M:%S'],
+    ...     time_parsed_column='TIMESTAMP', time_columns=['Label_2'], to_utc=True)
+    [OrderedDict([('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, \
+11, 34, 15, tzinfo=<UTC>)), ('Label_3', 'some_other_value')])]
 
     Raises
     ------
@@ -588,13 +587,12 @@ def export_array_ids_to_csv(data, array_ids_info, export_header=False,
 
     Raises
     ------
-    ArrayIdsInfoError: If not at least one array id in array_ids_info is found.
+    ArrayIdsInfoValueError: If not at least one array id in array_ids_info is found.
     ArrayIdsExportInfoError: If no information for a certain array id is found.
-    ArrayIdsFilePathError: If no output file path for a certain array id is found.
 
     """
     if len(array_ids_info) < 1:
-        raise ArrayIdsInfoError("At least one array id must be given!")
+        raise ArrayIdsInfoValueError("At least one array id must be given!")
 
     data_filtered = filter_data_by_array_ids(data, *array_ids_info.keys())
 
@@ -606,7 +604,7 @@ def export_array_ids_to_csv(data, array_ids_info, export_header=False,
         file_path = export_info.get('file_path')
         if not file_path:
             msg = "Not file path was found for array id {0}".format(array_id)
-            raise ArrayIdsFilePathError(msg)
+            raise ArrayIdsExportInfoError(msg)
 
         export_to_csv(
             data=array_id_data,
@@ -636,13 +634,11 @@ def export_to_csv(data, outfile_path, export_header=False, mode='a+',
 
     Examples
     --------
-    >>> import pytz
     >>> import shutil
     >>> import tempfile
     >>> temp_dir = tempfile.mkdtemp()
     >>> temp_outfile = os.path.join(temp_dir, 'temp_outfile.dat')
 
-    >>> cr = CRGeneric()
     >>> data = [
     ...     OrderedDict([
     ...         ('Label_1', 'some_value'),
@@ -651,18 +647,18 @@ def export_to_csv(data, outfile_path, export_header=False, mode='a+',
     ...     ])
     ... ]
 
-    >>> cr.export_to_csv(data, temp_outfile, export_header=True)
-    >>> exported_data = cr.read_data(temp_outfile, header_row=0)
+    >>> export_to_csv(data, temp_outfile, export_header=True)
+    >>> exported_data = read_table_data(temp_outfile, header_row=0)
     >>> exported_data
-    [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 12:34:15'),
-    ('Label_3', 'some_other_value')])]
+    [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 12:34:15'), \
+('Label_3', 'some_other_value')])]
 
-    >>> cr.export_to_csv(data, temp_outfile, include_time_zone=True)
-    >>> exported_data = cr.read_data(temp_outfile, header_row=0)
+    >>> export_to_csv(data, temp_outfile, include_time_zone=True)
+    >>> exported_data = read_table_data(temp_outfile, header_row=0)
     >>> exported_data
-    [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 12:34:15'),
-    ('Label_3', 'some_other_value')]), OrderedDict([('Label_1', 'some_value'),
-    ('Label_2', '2016-05-02 12:34:15+0000'), ('Label_3', 'some_other_value')])]
+    [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 12:34:15'), \
+('Label_3', 'some_other_value')]), OrderedDict([('Label_1', 'some_value'), \
+('Label_2', '2016-05-02 12:34:15+0000'), ('Label_3', 'some_other_value')])]
 
     >>> shutil.rmtree(temp_dir)
 
@@ -684,13 +680,12 @@ def export_to_csv(data, outfile_path, export_header=False, mode='a+',
                 header = [str(key) for key in row.keys()]
                 f_out.write(",".join(header) + "\n")
                 export_header = False
-            f_out.write(
-                ",".join(_values_to_strings(row, include_time_zone)) + "\n"
-            )
+
+            f_out.write(",".join(_values_to_strings(row, include_time_zone)) + "\n")
 
 
 def filter_data_by_array_ids(data, *array_ids):
-    """Filter data set by array ids.
+    """Filter mixed array data set by array ids.
 
     Parameters
     ----------
@@ -703,6 +698,26 @@ def filter_data_by_array_ids(data, *array_ids):
     -------
     Filtered data set if array ids are given, unfiltered otherwise. If a mixed
     data set is given, return unfiltered data set split by its array ids.
+
+    Examples
+    --------
+    >>> data = [
+    ...     OrderedDict([('ID', '100'), ('Year', '2016'), ('Julian Day', '123'), ('Data', '54.2')]),
+    ...     OrderedDict([('ID', '101'), ('Year', '2016'), ('Julian Day', '123'),
+    ...     ('Hour/Minute', '1245'), ('Data', '44.2')])
+    ... ]
+    >>> filter_data_by_array_ids(data, '100')
+    defaultdict(<class 'list'>, {'100': [OrderedDict([('ID', '100'), ('Year', '2016'), \
+('Julian Day', '123'), ('Data', '54.2')])]})
+    >>> filter_data_by_array_ids(data, '101')
+    defaultdict(<class 'list'>, {'101': [OrderedDict([('ID', '101'), ('Year', '2016'), \
+('Julian Day', '123'), ('Hour/Minute', '1245'), ('Data', '44.2')])]})
+    >>> data_filtered = filter_data_by_array_ids(data, '100', '101')
+    >>> data_filtered.get('100')
+    [OrderedDict([('ID', '100'), ('Year', '2016'), ('Julian Day', '123'), ('Data', '54.2')])]
+    >>> data_filtered.get('101')
+    [OrderedDict([('ID', '101'), ('Year', '2016'), ('Julian Day', '123'), ('Hour/Minute', \
+'1245'), ('Data', '44.2')])]
 
     Raises:
         DataTypeError: if anything else than list or dictionary data is given.
@@ -731,7 +746,7 @@ def filter_data_by_array_ids(data, *array_ids):
     else:
         msg = "Data collection of type {data_type} not supported. "
         msg += "Valid collection types are dict and list.".format(data_type=type(data))
-        raise DataTypeError(msg)
+        raise DataSetTypeError(msg)
 
     return data_filtered
 
@@ -758,10 +773,35 @@ def read_array_ids_data(infile_path, first_line_num=0, last_line_num=None, fix_f
     -------
     All data found from the given line number onwards, filtered by array id.
 
+    Examples
+    --------
+    >>> import shutil
+    >>> import tempfile
+    >>> temp_dir = tempfile.mkdtemp()
+    >>> temp_outfile = os.path.join(temp_dir, 'temp_outfile.dat')
+
+    >>> data = [
+    ...     OrderedDict([('ID', '100'), ('Year', '2016'), ('Julian Day', '123'), ('Data', '54.2')]),
+    ...     OrderedDict([('ID', '101'), ('Year', '2016'), ('Julian Day', '123'),
+    ...     ('Hour/Minute', '1245'), ('Data', '44.2')])
+    ... ]
+    >>> export_to_csv(data, temp_outfile)
+
+    >>> array_id_names = {'100': 'Daily', '101': 'Hourly'}
+    >>> exported_data = read_array_ids_data(temp_outfile, array_id_names=array_id_names)
+    >>> exported_data
+    defaultdict(<class 'list'>, {'Hourly': [OrderedDict([(0, '101'), (1, '2016'), (2, '123'), \
+(3, '1245'), (4, '44.2')])], 'Daily': [OrderedDict([(0, '100'), (1, '2016'), (2, '123'), \
+(3, '54.2')])]})
+    >>> exported_data.get('Hourly')
+    [OrderedDict([(0, '101'), (1, '2016'), (2, '123'), (3, '1245'), (4, '44.2')])]
+
+    >>> shutil.rmtree(temp_dir)
+
     """
     if not array_id_names:
         array_id_names = {}
-    array_ids = [array_id for array_id in array_id_names.keys()]
+    array_ids = [array_id for array_id in array_id_names]
 
     data_mixed = read_mixed_array_data(
         infile_path=infile_path,
@@ -799,6 +839,27 @@ def read_mixed_array_data(infile_path, first_line_num=0, last_line_num=None, fix
     Returns
     -------
     All data found from the given line number onwards.
+
+    Example
+    -------
+    >>> import shutil
+    >>> import tempfile
+    >>> temp_dir = tempfile.mkdtemp()
+    >>> temp_outfile = os.path.join(temp_dir, 'temp_outfile.dat')
+
+    >>> data = [
+    ...     OrderedDict([('ID', '100'), ('Year', '2016'), ('Julian Day', '123'), ('Data', '54.2')]),
+    ...     OrderedDict([('ID', '101'), ('Year', '2016'), ('Julian Day', '123'),
+    ...     ('Hour/Minute', '1245'), ('Data', '44.2')])
+    ... ]
+    >>> export_to_csv(data, temp_outfile)
+
+    >>> exported_data = read_mixed_array_data(temp_outfile)
+    >>> exported_data
+    [OrderedDict([(0, '100'), (1, '2016'), (2, '123'), (3, '54.2')]), OrderedDict([(0, '101'), \
+(1, '2016'), (2, '123'), (3, '1245'), (4, '44.2')])]
+
+    >>> shutil.rmtree(temp_dir)
 
     """
     return [row for row in _read_mixed_array_data(
@@ -868,28 +929,28 @@ def read_table_data(infile_path, header=None, header_row=None, first_line_num=0,
 
     >>> exported_data = read_table_data(temp_outfile, header_row=0)
     >>> exported_data[:3]
-    [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 00:34:15'),
-    ('Label_3', 'some_other_value')]), OrderedDict([('Label_1', 'some_value'),
-    ('Label_2', '2016-05-02 01:34:15'), ('Label_3', 'some_other_value')]),
-    OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 02:34:15'),
-    ('Label_3', 'some_other_value')])]
+    [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 00:34:15'), \
+('Label_3', 'some_other_value')]), OrderedDict([('Label_1', 'some_value'), \
+('Label_2', '2016-05-02 01:34:15'), ('Label_3', 'some_other_value')]), \
+OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 02:34:15'), \
+('Label_3', 'some_other_value')])]
 
     >>> new_column_names = ['New_Label_1', 'New_Label_2', 'New_Label_3']
     >>> exported_data = read_table_data(temp_outfile, header=new_column_names, first_line_num=1)
     >>> exported_data[:3]
-    [OrderedDict([('New_Label_1', 'some_value'), ('New_Label_2', '2016-05-02 00:34:15'),
-    ('New_Label_3', 'some_other_value')]), OrderedDict([('New_Label_1', 'some_value'),
-    ('New_Label_2', '2016-05-02 01:34:15'), ('New_Label_3', 'some_other_value')]),
-    OrderedDict([('New_Label_1', 'some_value'), ('New_Label_2', '2016-05-02 02:34:15'),
-    ('New_Label_3', 'some_other_value')])]
+    [OrderedDict([('New_Label_1', 'some_value'), ('New_Label_2', '2016-05-02 00:34:15'), \
+('New_Label_3', 'some_other_value')]), OrderedDict([('New_Label_1', 'some_value'), \
+('New_Label_2', '2016-05-02 01:34:15'), ('New_Label_3', 'some_other_value')]), \
+OrderedDict([('New_Label_1', 'some_value'), ('New_Label_2', '2016-05-02 02:34:15'), \
+('New_Label_3', 'some_other_value')])]
 
     >>> exported_data = read_table_data(temp_outfile, header_row=0, first_line_num=18)
     >>> exported_data
-    [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 17:34:15'),
-    ('Label_3', 'some_other_value')]), OrderedDict([('Label_1', 'some_value'),
-    ('Label_2', '2016-05-02 18:34:15'), ('Label_3', 'some_other_value')]),
-    OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 19:34:15'),
-    ('Label_3', 'some_other_value')])]
+    [OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 17:34:15'), \
+('Label_3', 'some_other_value')]), OrderedDict([('Label_1', 'some_value'), \
+('Label_2', '2016-05-02 18:34:15'), ('Label_3', 'some_other_value')]), \
+OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 19:34:15'), \
+('Label_3', 'some_other_value')])]
 
     >>> exported_data = read_table_data(
     ... temp_outfile,
@@ -901,12 +962,12 @@ def read_table_data(infile_path, header=None, header_row=None, first_line_num=0,
     ... time_columns=['Label_2']
     ... )
     >>> exported_data[:3]
-    [OrderedDict([('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5,
-    2, 0, 34, 15, tzinfo=<UTC>)), ('Label_3', 'some_other_value')]), OrderedDict([
-    ('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, 1, 34, 15,
-    tzinfo=<UTC>)), ('Label_3', 'some_other_value')]), OrderedDict([('Label_1',
-    'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, 2, 34, 15, tzinfo=<UTC>)),
-    ('Label_3', 'some_other_value')])]
+    [OrderedDict([('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, \
+0, 34, 15, tzinfo=<UTC>)), ('Label_3', 'some_other_value')]), OrderedDict([\
+('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, 1, 34, 15, \
+tzinfo=<UTC>)), ('Label_3', 'some_other_value')]), OrderedDict([('Label_1', \
+'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, 2, 34, 15, tzinfo=<UTC>)), \
+('Label_3', 'some_other_value')])]
 
     >>> shutil.rmtree(temp_dir)
 
@@ -957,7 +1018,6 @@ def update_column_names(data, column_names, match_row_lengths=True,
 
     Examples
     --------
-    >>> cr = CRGeneric()
     >>> data = [
     ...     OrderedDict([
     ...         ('Label_1', 'some_value'),
@@ -966,24 +1026,27 @@ def update_column_names(data, column_names, match_row_lengths=True,
     ... ]
 
     >>> new_column_names = ['New_Label_1', 'New_Label_2', 'New_Label_3']
-    >>> data_new_column_names = cr.update_column_names(data, column_names=new_column_names)
-    >>> data_new_column_names
-    [OrderedDict([('New_Label_1', 'some_value'), ('New_Label_2', datetime.datetime(2016,
-    5, 2, 12, 34, 15, tzinfo=<UTC>)), ('New_Label_3', 'some_other_value')])]
+    >>> new_column_names_result = update_column_names(data, column_names=new_column_names)
+    >>> new_column_names_result
+    [OrderedDict([('New_Label_1', 'some_value'), ('New_Label_2', datetime.datetime(2016, \
+5, 2, 12, 34, 15, tzinfo=<UTC>)), ('New_Label_3', 'some_other_value')])]
 
     >>> data.append(OrderedDict([
     ...     ('Label_1', 'some_value'), ('Label_2', 'some_other_value')]))
-    >>> new_column_names_result = cr.update_column_names(
+    >>> new_column_names_result = update_column_names(
     ... data, column_names=new_column_names, get_mismatched_row_lengths=True)
     >>> new_column_names_result
-    UpdatedColumnNamesResult(data_updated_column_names=[OrderedDict([('New_Label_1',
-    'some_value'), ('New_Label_2', 'some_other_value')])],
-    data_mismatched_row_lengths=[OrderedDict([('Label_1', 'some_value')])])
+    UpdatedColumnNamesResult(data_updated_column_names=[OrderedDict([('New_Label_1', \
+'some_value'), ('New_Label_2', datetime.datetime(2016, 5, 2, 12, 34, 15, tzinfo=<UTC>)), \
+('New_Label_3', 'some_other_value')])], data_mismatched_row_lengths=[OrderedDict([\
+('Label_1', 'some_value'), ('Label_2', 'some_other_value')])])
+
     >>> data_new_column_names, data_mismatched_rows = new_column_names_result
     >>> data_new_column_names
-    [OrderedDict([('New_Label_1', 'some_value'), ('New_Label_2', 'some_other_value')])]
+    [OrderedDict([('New_Label_1', 'some_value'), ('New_Label_2', datetime.datetime(2016, \
+5, 2, 12, 34, 15, tzinfo=<UTC>)), ('New_Label_3', 'some_other_value')])]
     >>> data_mismatched_rows
-    [OrderedDict([('Label_1', 'some_value')])]
+    [OrderedDict([('Label_1', 'some_value'), ('Label_2', 'some_other_value')])]
 
     """
     data_updated_column_names = []
@@ -1013,3 +1076,7 @@ def update_column_names(data, column_names, match_row_lengths=True,
             data_updated_column_names, data_mismatched_row_lengths)
 
     return data_updated_column_names
+
+if __name__ == "__main__":
+    import doctest
+    doctest.testmod()
