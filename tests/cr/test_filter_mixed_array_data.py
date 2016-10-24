@@ -25,7 +25,7 @@ def test_filter_array_ids_data_no_filter():
 
     data_mixed = cr.read_mixed_array_data(infile_path=file)
     data_split = cr.read_array_ids_data(infile_path=file)
-    data_filtered = cr.filter_data_by_array_ids(data=data_split)
+    data_filtered = cr.filter_mixed_array_data(data=data_split)
     data_split_merged = [row for array_id, array_id_data in data_filtered.items()
                          for row in array_id_data]
 
@@ -37,7 +37,7 @@ def test_filter_array_ids_data_filter_all():
 
     data_mixed = cr.read_mixed_array_data(infile_path=file)
     data_split = cr.read_array_ids_data(infile_path=file)
-    data_split_filtered = cr.filter_data_by_array_ids(
+    data_split_filtered = cr.filter_mixed_array_data(
         data_split, '201', '203', '204', '210')
 
     data_split_merged = [row for array_id, array_id_data in data_split_filtered.items()
@@ -55,7 +55,7 @@ def test_filter_array_ids_data_filter():
 
     data_pre_filtered = cr.read_mixed_array_data(infile_path=file_filtered)
     data_split_unfiltered = cr.read_array_ids_data(infile_path=file_unfiltered)
-    data_split_filtered = cr.filter_data_by_array_ids(
+    data_split_filtered = cr.filter_mixed_array_data(
         data_split_unfiltered, '201', '203')
 
     data_split_filtered_merged = [

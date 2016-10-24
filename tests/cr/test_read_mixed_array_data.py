@@ -24,15 +24,21 @@ def assert_floating_points_fixed(data_no_fp_fix, data_fp_fixed, replacements_lib
 def test_length_empty():
     file = os.path.join(TEST_DATA_DIR, 'csv_testdata_empty.dat')
     data = cr.read_mixed_array_data(infile_path=file)
+    assert len(data) == 0
 
+    data = cr.read_array_ids_data(infile_path=file)
     assert len(data) == 0
 
 
 def test_length_ten_rows():
     file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
     data = cr.read_mixed_array_data(infile_path=file)
-
     assert len(data) == 10
+
+    data = cr.read_array_ids_data(infile_path=file)
+    data_mixed = [row for array_id, array_id_data in data.items()
+                  for row in array_id_data]
+    assert len(data_mixed) == 10
 
 
 def test_length_line_num_five_rows():
@@ -53,3 +59,43 @@ def test_fix_floating_points():
         data_fp_fixed=data_fp_fixed,
         replacements_lib=replacements
     )
+
+
+def test_compare_length_ten_rows():
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
+
+    data_mixed = cr.read_mixed_array_data(infile_path=file)
+    data_split = cr.read_array_ids_data(infile_path=file)
+    data_split_merged = [row for array_id, array_id_data in data_split.items()
+                         for row in array_id_data]
+
+    assert len(data_mixed) == len(data_split_merged)
+
+
+def test_compare_data_ten_rows():
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
+
+    data_mixed = cr.read_mixed_array_data(infile_path=file)
+    data_split = cr.read_array_ids_data(infile_path=file)
+    data_split_merged = [row for array_id, array_id_data in data_split.items()
+                         for row in array_id_data]
+
+    assert len(data_mixed) == len(data_split_merged)
+
+
+def test_compare_data_ten_rows_lookup():
+    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
+    array_ids_names = {
+        '201': 'label_1', '203': 'label_2', '204': 'label_3', '210': 'label_4'
+    }
+
+    data_mixed = cr.read_mixed_array_data(infile_path=file)
+    data_split_translated = cr.read_array_ids_data(
+        infile_path=file, array_id_names=array_ids_names)
+
+    data_split_translated_merged = [
+        row for array_id, array_id_data in data_split_translated.items()
+        for row in array_id_data
+    ]
+
+    assert len(data_mixed) == len(data_split_translated_merged)

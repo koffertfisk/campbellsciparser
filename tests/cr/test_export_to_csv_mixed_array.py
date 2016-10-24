@@ -31,7 +31,7 @@ def delete_output(file_path):
 def test_export_array_ids_to_csv_empty_library():
     file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
     data_split = cr.read_array_ids_data(infile_path=file)
-    with pytest.raises(cr.ArrayIdsInfoError):
+    with pytest.raises(cr.ArrayIdsInfoValueError):
         cr.export_array_ids_to_csv(data=data_split, array_ids_info={})
 
 
@@ -54,7 +54,7 @@ def test_export_array_ids_to_csv_content():
     output_file = os.path.join(TEST_DATA_DIR, 'testoutput/test.dat')
 
     data_split_unfiltered = cr.read_array_ids_data(infile_path=file)
-    data_split_filtered = cr.filter_data_by_array_ids(data_split_unfiltered, '201')
+    data_split_filtered = cr.filter_mixed_array_data(data_split_unfiltered, '201')
     data_split_array_id_filtered = data_split_filtered.get('201')
 
     cr.export_array_ids_to_csv(
@@ -74,7 +74,7 @@ def test_export_array_ids_to_csv_column_names():
     output_file_2 = os.path.join(TEST_DATA_DIR, 'testoutput/test_2.dat')
 
     data_split_unfiltered = cr.read_array_ids_data(infile_path=file)
-    data_split_filtered = cr.filter_data_by_array_ids(
+    data_split_filtered = cr.filter_mixed_array_data(
         data_split_unfiltered, '201', '203')
 
     data_split_filtered_201 = data_split_filtered.get('201')
@@ -117,7 +117,7 @@ def test_export_array_ids_to_csv_updated_column_names():
     output_file = os.path.join(TEST_DATA_DIR, 'testoutput/test.dat')
 
     data_split_unfiltered = cr.read_array_ids_data(infile_path=file)
-    data_split_filtered = cr.filter_data_by_array_ids(data_split_unfiltered, '203')
+    data_split_filtered = cr.filter_mixed_array_data(data_split_unfiltered, '203')
     data_split_array_id_filtered = data_split_filtered.get('203')
 
     column_names = ['Array_Id', 'Year', 'Day', 'Hour/Minute', 'Wind_Speed', 'Wind_Direction']

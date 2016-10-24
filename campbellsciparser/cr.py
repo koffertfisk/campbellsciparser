@@ -3,8 +3,8 @@
 """
 CR
 ---------------------
-Parser that provides common utilities for parsing and exporting data outputted by
-Campbell Scientific CR-type dataloggers.
+Utility for parsing and exporting data outputted by Campbell Scientific
+CR-type dataloggers.
 
 """
 import csv
@@ -17,7 +17,7 @@ import pytz
 
 
 class ArrayIdsInfoValueError(Exception):
-    """Raised whenever the given array ids info is insufficient. """
+    """Raised whenever provided array ids info is insufficient. """
     pass
 
 
@@ -38,15 +38,15 @@ class TimeColumnValueError(Exception):
 
 class TimeParsingError(Exception):
     """
-    Raised whenever there's an error in creating a datetime object and parsing errors
-    are not ignored.
+    Raised whenever there's an error when creating a datetime object (and parsing errors
+    are not ignored).
 
     """
     pass
 
 
 class UnknownPytzTimeZoneError(Exception):
-    """Raised whenever a given time zone is not a valid pytz time zone. """
+    """Raised whenever a provided time zone is not a valid pytz time zone. """
     pass
 
 
@@ -594,7 +594,7 @@ def export_array_ids_to_csv(data, array_ids_info, export_header=False,
     if len(array_ids_info) < 1:
         raise ArrayIdsInfoValueError("At least one array id must be given!")
 
-    data_filtered = filter_data_by_array_ids(data, *array_ids_info.keys())
+    data_filtered = filter_mixed_array_data(data, *array_ids_info.keys())
 
     for array_id, array_id_data in data_filtered.items():
         export_info = array_ids_info.get(array_id)
@@ -684,7 +684,7 @@ def export_to_csv(data, outfile_path, export_header=False, mode='a+',
             f_out.write(",".join(_values_to_strings(row, include_time_zone)) + "\n")
 
 
-def filter_data_by_array_ids(data, *array_ids):
+def filter_mixed_array_data(data, *array_ids):
     """Filter mixed array data set by array ids.
 
     Parameters
@@ -706,13 +706,13 @@ def filter_data_by_array_ids(data, *array_ids):
     ...     OrderedDict([('ID', '101'), ('Year', '2016'), ('Julian Day', '123'),
     ...     ('Hour/Minute', '1245'), ('Data', '44.2')])
     ... ]
-    >>> filter_data_by_array_ids(data, '100')
+    >>> filter_mixed_array_data(data, '100')
     defaultdict(<class 'list'>, {'100': [OrderedDict([('ID', '100'), ('Year', '2016'), \
 ('Julian Day', '123'), ('Data', '54.2')])]})
-    >>> filter_data_by_array_ids(data, '101')
+    >>> filter_mixed_array_data(data, '101')
     defaultdict(<class 'list'>, {'101': [OrderedDict([('ID', '101'), ('Year', '2016'), \
 ('Julian Day', '123'), ('Hour/Minute', '1245'), ('Data', '44.2')])]})
-    >>> data_filtered = filter_data_by_array_ids(data, '100', '101')
+    >>> data_filtered = filter_mixed_array_data(data, '100', '101')
     >>> data_filtered.get('100')
     [OrderedDict([('ID', '100'), ('Year', '2016'), ('Julian Day', '123'), ('Data', '54.2')])]
     >>> data_filtered.get('101')
@@ -801,6 +801,7 @@ def read_array_ids_data(infile_path, first_line_num=0, last_line_num=None, fix_f
     """
     if not array_id_names:
         array_id_names = {}
+
     array_ids = [array_id for array_id in array_id_names]
 
     data_mixed = read_mixed_array_data(
@@ -809,7 +810,7 @@ def read_array_ids_data(infile_path, first_line_num=0, last_line_num=None, fix_f
         last_line_num=last_line_num,
         fix_floats=fix_floats)
 
-    data_by_array_ids = filter_data_by_array_ids(data_mixed, *array_ids)
+    data_by_array_ids = filter_mixed_array_data(data_mixed, *array_ids)
 
     for array_id, array_name in array_id_names.items():
         if array_id in data_by_array_ids:

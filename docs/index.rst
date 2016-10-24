@@ -1,5 +1,5 @@
 .. CampbellSCIParser documentation master file, created by
-   sphinx-quickstart on Fri Oct 14 19:18:12 2016.
+   sphinx-quickstart on Mon Oct 24 14:12:35 2016.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 

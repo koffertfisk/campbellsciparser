@@ -27,6 +27,19 @@ def delete_output(file_path):
     shutil.rmtree(dirname)
 
 
+def test_values_to_strings():
+    row = OrderedDict([
+        ('Label_0', 'string'),
+        ('Label_1', datetime(2016, 1, 1, 22, 30, 0)),
+        ('Label_2', 15.7)
+    ])
+
+    expected_row_values = ['string', '2016-01-01 22:30:00', '15.7']
+    row_values_converted = cr._values_to_strings(row=row)
+
+    assert list(row_values_converted) == expected_row_values
+
+
 def test_export_to_csv_file_created():
     file = os.path.join(TEST_DATA_DIR, 'csv_testdata_10_rows.dat')
     output_file = os.path.join(TEST_DATA_DIR, 'testoutput/test.dat')
