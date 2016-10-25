@@ -95,6 +95,52 @@ def _datetime_to_string(dt, include_time_zone=False):
     return dt.strftime("%Y-%m-%d %H:%M:%S")
 
 
+def _extract_columns_data_generator(data, *column_names, **time_range):
+    """Iterator for extract_column_data
+
+    Parameters
+    ----------
+    data : list of OrderedDict
+        Data set to extract from.
+    *column_names : Column(s) to extract.
+    **time_range : Extract data from, to or between timestamps. If this mode is used, the
+        data set must be time converted.
+
+    Yields
+    ------
+    OrderedDict
+        The next row in a data set where specific columns have been extracted.
+
+    Raises
+    ------
+        TimeColumnValueError: If the keyword argument time_column is not provided or if
+            the given time column does not exist in a row.
+    """
+    if time_range:
+        time_column = time_range.get('time_column')
+
+        if not time_column:
+            raise TimeColumnValueError('No time column provided!')
+
+        from_timestamp = time_range.get('from_timestamp', datetime.fromtimestamp(0, pytz.UTC))
+        to_timestamp = time_range.get('to_timestamp')
+
+        if not to_timestamp:
+            to_timestamp = datetime.utcnow()
+            to_timestamp = to_timestamp.replace(tzinfo=pytz.utc)
+
+    for row in _data_generator(data):
+        if time_range:
+            if time_column not in row:
+                raise TimeColumnValueError("Invalid time column")
+            if to_timestamp >= row.get(time_column) >= from_timestamp:
+                yield OrderedDict([(name, value) for name, value in row.items() if name
+                                   in column_names])
+                continue
+        else:
+            yield OrderedDict([(name, value) for name, value in row.items() if name in column_names])
+
+
 def _find_first_time_column_name(column_names, time_columns):
     """Search for the column name which holds the first time column value.
 
@@ -296,9 +342,10 @@ def _process_mixed_array_rows(infile_path, first_line_num=0, last_line_num=None,
         Correct leading zeros for floating points values since many older CR-type
         dataloggers strips leading zeros.
 
-    Returns
-    -------
-    Each processed row represented as an OrderedDict, returned one at a time.
+    Yields
+    ------
+    OrderedDict
+        The next row read and processed from a mixed array format CSV file.
 
     """
     with open(infile_path, 'r') as f:
@@ -338,7 +385,7 @@ def _process_table_rows(infile_path, header=None, header_row=None, first_line_nu
     Yields
     ------
     OrderedDict
-        The next row read and processed from an input CSV file.
+        The next row read and processed from a table format CSV file.
 
     """
     with open(infile_path, 'r') as f:
@@ -576,7 +623,7 @@ def export_array_ids_to_csv(data, array_ids_info, export_header=False,
     data : list of OrderedDict
         Data set to export.
     array_ids_info : dict of dict
-        Array ids to export. Contains output file paths and file headers.
+        Array ids to export. Contains output file paths.
     export_header : bool, optional
         Write file header at the top of the output file.
     mode : str, optional
@@ -584,6 +631,32 @@ def export_array_ids_to_csv(data, array_ids_info, export_header=False,
         mode options.
     include_time_zone : bool, optional
         Include time zone in string converted datetime values.
+
+    Examples
+    --------
+    >>> import shutil
+    >>> import tempfile
+    >>> temp_dir = tempfile.mkdtemp()
+    >>> temp_outfile_100 = os.path.join(temp_dir, 'temp_outfile_100.dat')
+    >>> temp_outfile_101 = os.path.join(temp_dir, 'temp_outfile_101.dat')
+
+    >>> data = {
+    ...     '100': [OrderedDict([('ID', '100'), ('Year', '2016'), ('Julian Day', '123'), ('Data', '54.2')])],
+    ...     '101': [OrderedDict([('ID', '101'), ('Year', '2016'), ('Julian Day', '123'),
+    ...         ('Hour/Minute', '1245'), ('Data', '44.2')])]
+    ... }
+    >>> array_ids_info = {'100': {'file_path': temp_outfile_100}, '101': {'file_path': temp_outfile_101}}
+    >>> export_array_ids_to_csv(data, array_ids_info, export_header=True)
+
+    >>> exported_data_100 = read_table_data(temp_outfile_100, header_row=0)
+    >>> exported_data_101 = read_table_data(temp_outfile_101, header_row=0)
+    >>> exported_data_100
+    [OrderedDict([('ID', '100'), ('Year', '2016'), ('Julian Day', '123'), ('Data', '54.2')])]
+    >>> exported_data_101
+    [OrderedDict([('ID', '101'), ('Year', '2016'), ('Julian Day', '123'), ('Hour/Minute', \
+'1245'), ('Data', '44.2')])]
+
+    >>> shutil.rmtree(temp_dir)
 
     Raises
     ------
@@ -685,22 +758,75 @@ def export_to_csv(data, outfile_path, export_header=False, mode='a+',
 
 
 def extract_columns_data(data, *column_names, **time_range):
-    #TODO Finish function
     """Extract data from specific column(s).
 
     Parameters
     ----------
     data : list of OrderedDict
         Data set to extract from.
-    *column_names : Column(s) to extract. If no arguments are given, return the entire
-        data set.
+    *column_names : Column(s) to extract.
     **time_range : Extract data from, to or between timestamps. If this mode is used, the
         data set must be time converted.
 
     Returns
     -------
+        Data extracted from one or more columns
+
+    Raises
+    ------
+        TimeColumnValueError: If the keyword argument time_column is not provided or if
+            the given time column does not exist in a row.
+
+    Example
+    -------
+    >>> data = [
+    ...     OrderedDict([
+    ...         ('Label_1', 'some_value_1'),
+    ...         ('Label_2', datetime(2016, 5, 2, 12, 34, 15, tzinfo=pytz.UTC)),
+    ...         ('Label_3', 'some_other_value_1')
+    ...     ]),
+    ...     OrderedDict([
+    ...         ('Label_1', 'some_value_2'),
+    ...         ('Label_2', datetime(2016, 5, 2, 13, 34, 15, tzinfo=pytz.UTC)),
+    ...         ('Label_3', 'some_other_value_2')
+    ...     ]),
+    ...     OrderedDict([
+    ...         ('Label_1', 'some_value_3'),
+    ...         ('Label_2', datetime(2016, 5, 2, 14, 34, 15, tzinfo=pytz.UTC)),
+    ...         ('Label_3', 'some_other_value_3')
+    ...     ])
+    ... ]
+
+    >>> extract_columns_data(data, 'Label_3')
+    [OrderedDict([('Label_3', 'some_other_value_1')]), OrderedDict([('Label_3', \
+'some_other_value_2')]), OrderedDict([('Label_3', 'some_other_value_3')])]
+
+
+    >>> extract_columns_data(data, 'Label_2', 'Label_3', time_column='Label_2',
+    ... from_timestamp=datetime(2016, 5, 2, 13, 0, 0, tzinfo=pytz.UTC))
+    [OrderedDict([('Label_2', datetime.datetime(2016, 5, 2, 13, 34, 15, tzinfo=<UTC>)), \
+('Label_3', 'some_other_value_2')]), OrderedDict([('Label_2', datetime.datetime(2016, \
+5, 2, 14, 34, 15, tzinfo=<UTC>)), ('Label_3', 'some_other_value_3')])]
+
+
+    >>> extract_columns_data(data, 'Label_2', 'Label_3', time_column='Label_2',
+    ... to_timestamp=datetime(2016, 5, 2, 14, 0, 0, tzinfo=pytz.UTC))
+    [OrderedDict([('Label_2', datetime.datetime(2016, 5, 2, 12, 34, 15, tzinfo=<UTC>)), \
+('Label_3', 'some_other_value_1')]), OrderedDict([('Label_2', datetime.datetime(2016, \
+5, 2, 13, 34, 15, tzinfo=<UTC>)), ('Label_3', 'some_other_value_2')])]
+
+    >>> extract_columns_data(data, 'Label_2', 'Label_3', time_column='Label_2',
+    ... from_timestamp=datetime(2016, 5, 2, 13, 0, 0, tzinfo=pytz.UTC),
+    ... to_timestamp = datetime(2016, 5, 2, 14, 0, 0, tzinfo=pytz.UTC))
+    [OrderedDict([('Label_2', datetime.datetime(2016, 5, 2, 13, 34, 15, tzinfo=<UTC>)), \
+('Label_3', 'some_other_value_2')])]
+
 
     """
+    extracted_columns_data = [row for row in _extract_columns_data_generator(
+        data, *column_names, **time_range)]
+
+    return extracted_columns_data
 
 
 def filter_mixed_array_data(data, *array_ids):
@@ -808,12 +934,10 @@ def read_array_ids_data(infile_path, first_line_num=0, last_line_num=None, fix_f
 
     >>> array_id_names = {'100': 'Daily', '101': 'Hourly'}
     >>> exported_data = read_array_ids_data(temp_outfile, array_id_names=array_id_names)
-    >>> exported_data
-    defaultdict(<class 'list'>, {'Hourly': [OrderedDict([(0, '101'), (1, '2016'), (2, '123'), \
-(3, '1245'), (4, '44.2')])], 'Daily': [OrderedDict([(0, '100'), (1, '2016'), (2, '123'), \
-(3, '54.2')])]})
     >>> exported_data.get('Hourly')
     [OrderedDict([(0, '101'), (1, '2016'), (2, '123'), (3, '1245'), (4, '44.2')])]
+    >>> exported_data.get('Daily')
+    [OrderedDict([(0, '100'), (1, '2016'), (2, '123'), (3, '54.2')])]
 
     >>> shutil.rmtree(temp_dir)
 
