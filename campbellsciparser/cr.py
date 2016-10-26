@@ -3,7 +3,7 @@
 """
 CR
 ---------------------
-Utility for parsing and exporting data outputted by Campbell Scientific
+Utility for parsing and exporting data outputted by Campbell Scientific, Inc.
 CR-type dataloggers.
 
 """
@@ -28,11 +28,6 @@ class ArrayIdsExportInfoError(Exception):
 
 class DataSetTypeError(Exception):
     """Raised whenever an unsupported data set format is provided. """
-    pass
-
-
-class ColumnError(Exception):
-    """Raised whenever there are problems parsing specific columns. """
     pass
 
 
@@ -140,10 +135,17 @@ def _extract_columns_data_generator(data, *column_names, **time_range):
             if time_column not in row:
                 raise TimeColumnValueError("Invalid time column")
             if to_timestamp >= row.get(time_column) >= from_timestamp:
+                if column_names:
+                    yield OrderedDict([(name, value) for name, value in row.items() if name
+                                       in column_names])
+                else:
+                    yield OrderedDict([(name, value) for name, value in row.items()])
+        else:
+            if column_names:
                 yield OrderedDict([(name, value) for name, value in row.items() if name
                                    in column_names])
-        else:
-            yield OrderedDict([(name, value) for name, value in row.items() if name in column_names])
+            else:
+                yield OrderedDict([(name, value) for name, value in row.items()])
 
 
 def _find_first_time_column_name(column_names, time_columns):
@@ -827,9 +829,6 @@ def extract_columns_data(data, *column_names, **time_range):
 
 
     """
-    if not column_names:
-        raise ColumnError("At least one column is required!")
-
     extracted_columns_data = [row for row in _extract_columns_data_generator(
         data, *column_names, **time_range)]
 

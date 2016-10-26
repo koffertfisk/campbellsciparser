@@ -6,7 +6,6 @@ import os
 from collections import OrderedDict
 from datetime import datetime
 
-import pytest
 import pytz
 
 from campbellsciparser import cr
@@ -23,6 +22,9 @@ def test_extract_columns_data_generator():
         ('Id', '100'), ('Year', '2016'), ('Month', '1'), ('Day', '1'), ('Hour', '22'),
         ('Minute', '30'), ('Second', '15'), ('Value', '200')
     ])]
+
+    assert tuple(cr._extract_columns_data_generator(
+        data)) == (data[0],)
 
     expected_row = OrderedDict([('Year', '2016'), ('Month', '1'), ('Value', '200')])
 
@@ -73,6 +75,8 @@ def test_extract_columns_data_generator_time_range():
     expected_row_4 = OrderedDict([(1, expected_datetime_row_4), (2, '230')])
     expected_row_5 = OrderedDict([(1, expected_datetime_row_5), (2, '240')])
 
+    from_timestamp = datetime(2016, 3, 1, 20, 0, 0, tzinfo=pytz.UTC)
+
     assert tuple(cr._extract_columns_data_generator(
         data_time_converted, 1, 2, time_column=1)) == (
                expected_row_1, expected_row_2, expected_row_3, expected_row_4, expected_row_5)
@@ -97,6 +101,16 @@ def test_extract_columns_data_generator_time_range():
     assert tuple(
         cr._extract_columns_data_generator(
             data_time_converted, 1, 2, time_column=1,
+            from_timestamp=from_timestamp, to_timestamp=to_timestamp
+        )
+    ) == (expected_row_3, expected_row_4)
+
+    expected_row_3 = OrderedDict([(0, '100'), (1, expected_datetime_row_3), (2, '220')])
+    expected_row_4 = OrderedDict([(0, '100'), (1, expected_datetime_row_4), (2, '230')])
+
+    assert tuple(
+        cr._extract_columns_data_generator(
+            data_time_converted, time_column=1,
             from_timestamp=from_timestamp, to_timestamp=to_timestamp
         )
     ) == (expected_row_3, expected_row_4)
@@ -132,8 +146,3 @@ def test_extract_columns_data():
         from_timestamp=from_timestamp, to_timestamp=to_timestamp)
 
     assert expected_data == data_extracted_columns
-
-
-def test_extract_columns_data_no_column_names():
-    with pytest.raises(cr.ColumnError):
-        cr.extract_columns_data([])
