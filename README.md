@@ -9,6 +9,58 @@ Utility for parsing and exporting data outputted by Campbell Scientific, Inc. CR
 * Ability to export processed data to CSV.
 
 ## Examples
+```sh
+>>> from campbellsciparser import cr 
+```
+To read table data
+```sh
+>>> data_table = read_table_data('/path/to/table_data.dat', header_row=0)
+>>> data_table
+[OrderedDict([('Time', '2016-06-01 12:00:00'), ('Air_Temperature', '11.464')]), 
+OrderedDict([('Time', '2016-06-02 12:00:00'), ('Air_Temperature', '12.320')]),
+OrderedDict([('Time', '2016-06-03 12:00:00'), ('Air_Temperature', '12.555')]),
+OrderedDict([('Time', '2016-06-04 12:00:00'), ('Air_Temperature', '11.639')]),
+OrderedDict([('Time', '2016-06-05 12:00:00'), ('Air_Temperature', '10.564')])]
+```
+Using custom header
+```sh
+>>> data_table = read_table_data('/path/to/table_data.dat', 
+... header=['Custom_Time_Column_Name', 'Custom_Data_Column_Name'], first_line_num=1)
+>>> data_table[0]
+OrderedDict([('Custom_Time_Column_Name', '2016-06-01 12:00:00'), ('Custom_Data_Column_Name', '11.464')])
+```
+Using no header (assigns column indices as names)
+```sh
+>>> data_table = read_table_data('/path/to/table_data.dat', first_line_num=1)
+>>> data_table[0]
+OrderedDict([(0, '2016-06-01 12:00:00'), (1, '11.464')])
+```
+To read mixed array data
+```sh
+>>> data_mixed_array = read_mixed_array_data('/path/to/mixed_array_data.dat')
+>>> data_mixed_array
+[OrderedDict([(0, 100), (1, '2016'), (2, '133'), (3, '0'), (4, '9.464')]), 
+OrderedDict([(0, 101), (1, '2016'), (2, '133'), (3, '0'), (4, '9.726')]
+OrderedDict([(0, 110), (1, '2016'), (2, '133'), (3, '0'), (4, '9.726')]),
+OrderedDict([(0, 110), (1, '2016'), (2, '133'), (3, '1210'), (4, '9.779')]),
+OrderedDict([(0, 110), (1, '2016'), (2, '133'), (3, '1220'), (4, '9.856')]),
+OrderedDict([(0, 110), (1, '2016'), (2, '133'), (3, '1230'), (4, '9.915')])]
+```
+Read and parse time table data
+```sh
+>>> data_table = read_table_data(
+... '/path/to/table_data.dat',
+... header_row=0,
+... parse_time=True,
+... time_zone='Europe/Stockholm',
+... time_format_args_library=['%Y-%m-%d %H:%M:%S'],
+... time_parsed_column='TIMESTAMP',
+... time_columns=['Time']
+... )
+>>> data_table[0]
+OrderedDict([('Timestamp', datetime.datetime(2016, 6, 1, 12, 0, tzinfo=<DstTzInfo 'Europe/Stockholm' 
+CEST+2:00:00 DST>), ('Air_Temperature', '11.464')])
+```
 
 ## Installation
 Source code hosted on GitHub at https://github.com/SunBurst/campbellsciparser
