@@ -31,6 +31,11 @@ class DataSetTypeError(Exception):
     pass
 
 
+class ColumnError(Exception):
+    """Raised whenever there are problems parsing specific columns. """
+    pass
+
+
 class TimeColumnValueError(Exception):
     """Raised whenever there are problems parsing specific time columns. """
     pass
@@ -116,6 +121,7 @@ def _extract_columns_data_generator(data, *column_names, **time_range):
         TimeColumnValueError: If the keyword argument time_column is not provided or if
             the given time column does not exist in a row.
     """
+
     if time_range:
         time_column = time_range.get('time_column')
 
@@ -136,7 +142,6 @@ def _extract_columns_data_generator(data, *column_names, **time_range):
             if to_timestamp >= row.get(time_column) >= from_timestamp:
                 yield OrderedDict([(name, value) for name, value in row.items() if name
                                    in column_names])
-                continue
         else:
             yield OrderedDict([(name, value) for name, value in row.items() if name in column_names])
 
@@ -484,8 +489,7 @@ def _values_to_strings(row, include_time_zone=False):
     """
     for name, value in row.items():
         if isinstance(value, datetime):
-            row[name] = _datetime_to_string(
-                value, include_time_zone=include_time_zone)
+            row[name] = _datetime_to_string(value, include_time_zone=include_time_zone)
         else:
             row[name] = str(value)
 
@@ -622,7 +626,7 @@ def export_array_ids_to_csv(data, array_ids_info, export_header=False,
     ----------
     data : list of OrderedDict
         Data set to export.
-    array_ids_info : dict of dict
+    array_ids_info : dict
         Array ids to export. Contains output file paths.
     export_header : bool, optional
         Write file header at the top of the output file.
@@ -823,6 +827,9 @@ def extract_columns_data(data, *column_names, **time_range):
 
 
     """
+    if not column_names:
+        raise ColumnError("At least one column is required!")
+
     extracted_columns_data = [row for row in _extract_columns_data_generator(
         data, *column_names, **time_range)]
 

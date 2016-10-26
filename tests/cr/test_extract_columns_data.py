@@ -6,6 +6,7 @@ import os
 from collections import OrderedDict
 from datetime import datetime
 
+import pytest
 import pytz
 
 from campbellsciparser import cr
@@ -14,29 +15,34 @@ TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
 def test_extract_columns_data_generator():
-    file = os.path.join(TEST_DATA_DIR, 'csv_testdata_1_row_time_and_values.dat')
     time_zone = 'Etc/GMT-1'
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S']
-    time_columns = [i + 1 for i in range(6)]
+    time_columns = ['Year', 'Month', 'Day', 'Hour', 'Minute', 'Second']
 
-    data = cr.read_table_data(infile_path=file)
+    data = [OrderedDict([
+        ('Id', '100'), ('Year', '2016'), ('Month', '1'), ('Day', '1'), ('Hour', '22'),
+        ('Minute', '30'), ('Second', '15'), ('Value', '200')
+    ])]
 
-    expected_row = OrderedDict([(1, '2016'), (2, '1'), (7, '200')])
+    expected_row = OrderedDict([('Year', '2016'), ('Month', '1'), ('Value', '200')])
+
     assert tuple(cr._extract_columns_data_generator(
-        data, 1, 2, 7)) == (expected_row, )
+        data, 'Year', 'Month', 'Value')) == (expected_row, )
 
     data_row_time_converted = cr.convert_time(
         data=data,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,
+        time_parsed_column='Timestamp',
         time_columns=time_columns,
         to_utc=True
     )
 
     expected_datetime = datetime(2016, 1, 1, 21, 30, 15, tzinfo=pytz.UTC)
-    expected_row = OrderedDict([(1, expected_datetime), (7, '200')])
+    expected_row = OrderedDict([('Timestamp', expected_datetime), ('Value', '200')])
+
     assert tuple(cr._extract_columns_data_generator(
-        data_row_time_converted, 1, 7)) == (expected_row, )
+        data_row_time_converted, 'Timestamp', 'Value')) == (expected_row, )
 
 
 def test_extract_columns_data_generator_time_range():
@@ -126,3 +132,8 @@ def test_extract_columns_data():
         from_timestamp=from_timestamp, to_timestamp=to_timestamp)
 
     assert expected_data == data_extracted_columns
+
+
+def test_extract_columns_data_no_column_names():
+    with pytest.raises(cr.ColumnError):
+        cr.extract_columns_data([])
