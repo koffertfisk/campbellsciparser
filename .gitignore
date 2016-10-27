@@ -24,10 +24,10 @@ local.properties
 build
 campbellsciparser/*.pyc
 campbellsciparser/__pycache__
-tests/cr/__pycache___
+tests/__pycache__
+tests/cr/__pycache__
 CampbellSCIParser.egg-info
 dist
-tests/__pycache__
 
 # Pytest files
 .cache
