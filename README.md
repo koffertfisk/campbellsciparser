@@ -127,6 +127,50 @@ OrderedDict([('Time', datetime.datetime(2016, 6, 3, 12, 0, tzinfo=<UTC>), ('Air_
 ... to_timestamp=datetime(2016, 6, 3, 12, 0, 0, tzinfo=pytz.UTC))
 [OrderedDict([('Time', datetime.datetime(2016, 6, 3, 12, 0, tzinfo=<UTC>), ('Air_Temperature', '12.555')])]
 ```
+Update column names
+```sh
+>>> new_column_names = ['New_Label_1', 'New_Label_2']
+>>> new_column_names_result = update_column_names(data_table, column_names=new_column_names)
+>>> new_column_names_result[:3]
+[OrderedDict([('New_Label_1', datetime.datetime(2016, 6, 1, 12, 0, tzinfo=<UTC>)), ('New_Label_2', '11.464')]), 
+OrderedDict([('New_Label_1', datetime.datetime(2016, 6, 2, 12, 0, tzinfo=<UTC>)), ('New_Label_2', '12.320')]),
+OrderedDict([('New_Label_1', datetime.datetime(2016, 6, 3, 12, 0, tzinfo=<UTC>), ('New_Label_2', '12.555')])]
+```
+Export to CSV
+```sh
+>>> export_to_csv(data_table, 'path/to/output_file_w_header.dat', export_header=True)
+>>> exported_data = read_table_data('path/to/output_file_w_header.dat', header_row=0)
+>>> exported_data[0]
+[OrderedDict([('Time', '2016-06-01 12:00:00'), ('Air_Temperature', '11.464')])]
+
+export_to_csv(data_table, 'path/to/output_file_wo_header.dat', export_header=False)
+>>> exported_data = read_table_data('path/to/output_file_wo_header.dat')
+>>> exported_data[0]
+[OrderedDict([(0, '2016-06-01 12:00:00'), (1, '11.464')])]
+
+export_to_csv(data_table, 'path/to/output_file_w_tz.dat', export_header=True, include_time_zone=True)
+>>> exported_data = read_table_data('path/to/output_file_w_tz.dat', header_row=0)
+>>> exported_data[0]
+[OrderedDict([(0, '2016-06-01 12:00:00+0000'), (1, '11.464')])]
+```
+Export array ids data to CSV
+```sh
+>>> array_ids_data = {
+... '100': [OrderedDict([(0, '100'), (1, '2016'), (2, '159'), (3, '0'), (4, '11.273')])],
+... '101': [OrderedDict([(0, '101'), (1, '2016'), (2, '159'), (3, '17.320')])]
+...}
+>>> array_ids_info = {
+... '100': {'file_path': 'path/to/outputfile_100.dat'}, 
+... '101': {'file_path': 'path/to/outputfile_101.dat'}
+... }
+>>> export_array_ids_to_csv(array_ids_data, array_ids_info, export_header=True)
+>>> exported_data_100 = read_table_data('path/to/outputfile_100.dat', header_row=0)
+>>> exported_data_101 = read_table_data('path/to/outputfile_101.dat', header_row=0)
+>>> exported_data_100
+[OrderedDict([(0, '100'), (1, '2016'), (2, '159'), (3, '0'), (4, '11.273')]
+>>> exported_data_101
+[OrderedDict([(0, '101'), (1, '2016'), (2, '159'), (3, '17.320')])]
+```
 
 ## Dependencies
 * pytz
