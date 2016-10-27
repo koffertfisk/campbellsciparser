@@ -22,6 +22,13 @@ OrderedDict([('Time', '2016-06-03 12:00:00'), ('Air_Temperature', '12.555')]),
 OrderedDict([('Time', '2016-06-04 12:00:00'), ('Air_Temperature', '11.639')]),
 OrderedDict([('Time', '2016-06-05 12:00:00'), ('Air_Temperature', '10.564')])]
 ```
+To read specific rows
+```sh
+>>> data_table = read_table_data('/path/to/table_data.dat', header_row=0, first_line_num=2, last_line_num=3)
+>>> data_table
+OrderedDict([('Time', '2016-06-03 12:00:00'), ('Air_Temperature', '12.555')]),
+OrderedDict([('Time', '2016-06-04 12:00:00'), ('Air_Temperature', '11.639')]),
+```
 Using custom header
 ```sh
 >>> data_table = read_table_data('/path/to/table_data.dat', 
@@ -39,12 +46,12 @@ To read mixed array data
 ```sh
 >>> data_mixed_array = read_mixed_array_data('/path/to/mixed_array_data.dat')
 >>> data_mixed_array
-[OrderedDict([(0, 100), (1, '2016'), (2, '133'), (3, '0'), (4, '9.464')]), 
-OrderedDict([(0, 101), (1, '2016'), (2, '133'), (3, '0'), (4, '9.726')]
-OrderedDict([(0, 110), (1, '2016'), (2, '133'), (3, '0'), (4, '9.726')]),
-OrderedDict([(0, 110), (1, '2016'), (2, '133'), (3, '1210'), (4, '9.779')]),
-OrderedDict([(0, 110), (1, '2016'), (2, '133'), (3, '1220'), (4, '9.856')]),
-OrderedDict([(0, 110), (1, '2016'), (2, '133'), (3, '1230'), (4, '9.915')])]
+[OrderedDict([(0, 100), (1, '2016'), (2, '159'), (3, '0'), (4, '11.273)]), 
+OrderedDict([(0, 101), (1, '2016'), (2, '159'), (3, '17.320')]
+OrderedDict([(0, 110), (1, '2016'), (2, '159'), (3, '0'), (4, '11.379')]),
+OrderedDict([(0, 110), (1, '2016'), (2, '159'), (3, '5'), (4, '11.443')]),
+OrderedDict([(0, 110), (1, '2016'), (2, '159'), (3, '10'), (4, '11.407')]),
+OrderedDict([(0, 110), (1, '2016'), (2, '159'), (3, '15'), (4, '11.340')])]
 ```
 Read and parse time table data
 ```sh
