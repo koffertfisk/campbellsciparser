@@ -24,12 +24,7 @@ local.properties
 build
 campbellsciparser/*.pyc
 campbellsciparser/__pycache__
-campbellsciparser/devices/__pycache__
-tests/devices/__pycache__
-tests/devices/base/__pycache__
-tests/devices/cr10/__pycache__
-tests/devices/cr10x/__pycache__
-tests/devices/cr1000/__pycache__
+tests/cr/__pycache___
 CampbellSCIParser.egg-info
 dist
 tests/__pycache__
