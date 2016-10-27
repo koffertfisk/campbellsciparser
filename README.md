@@ -105,8 +105,7 @@ CEST+2:00:00 DST>), ('Air_Temperature', '11.464')])
 ```
 Extract columns data
 ```sh
->>> extract_columns_data(data_table, 'Air_Temperature')
->>> extract_columns_data[:3]
+>>> extract_columns_data(data_table, 'Air_Temperature')[:3]
 [OrderedDict([('Air_Temperature', '11.464')]), OrderedDict([('Air_Temperature', '12.320')]),
 OrderedDict([('Air_Temperature', '12.555')])]
 
@@ -143,12 +142,12 @@ Export to CSV
 >>> exported_data[0]
 [OrderedDict([('Time', '2016-06-01 12:00:00'), ('Air_Temperature', '11.464')])]
 
-export_to_csv(data_table, 'path/to/output_file_wo_header.dat', export_header=False)
+>>> export_to_csv(data_table, 'path/to/output_file_wo_header.dat', export_header=False)
 >>> exported_data = read_table_data('path/to/output_file_wo_header.dat')
 >>> exported_data[0]
 [OrderedDict([(0, '2016-06-01 12:00:00'), (1, '11.464')])]
 
-export_to_csv(data_table, 'path/to/output_file_w_tz.dat', export_header=True, include_time_zone=True)
+>>> export_to_csv(data_table, 'path/to/output_file_w_tz.dat', export_header=True, include_time_zone=True)
 >>> exported_data = read_table_data('path/to/output_file_w_tz.dat', header_row=0)
 >>> exported_data[0]
 [OrderedDict([(0, '2016-06-01 12:00:00+0000'), (1, '11.464')])]
