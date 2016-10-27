@@ -8,6 +8,13 @@ Utility for parsing and exporting data outputted by Campbell Scientific, Inc. CR
 * Provides time parsing with the ability to convert different CR-type time representations into Python datetime objects.
 * Ability to export processed data to CSV.
 
+## Installation
+Source code hosted on GitHub at https://github.com/SunBurst/campbellsciparser
+
+```sh
+# Install using pip
+pip install campbellsciparser
+```
 ## Examples
 ```sh
 >>> from campbellsciparser import cr 
@@ -95,14 +102,6 @@ Read and parse time table data
 >>> data_table[0]
 OrderedDict([('Timestamp', datetime.datetime(2016, 6, 1, 12, 0, tzinfo=<DstTzInfo 'Europe/Stockholm' 
 CEST+2:00:00 DST>), ('Air_Temperature', '11.464')])
-```
-
-## Installation
-Source code hosted on GitHub at https://github.com/SunBurst/campbellsciparser
-
-```sh
-# Install using pip
-pip install campbellsciparser
 ```
 
 ## Dependencies
