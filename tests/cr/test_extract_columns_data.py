@@ -31,7 +31,7 @@ def test_extract_columns_data_generator():
     assert tuple(cr._extract_columns_data_generator(
         data, 'Year', 'Month', 'Value')) == (expected_row, )
 
-    data_row_time_converted = cr.convert_time(
+    data_row_time_converted = cr.parse_time(
         data=data,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,
@@ -55,7 +55,7 @@ def test_extract_columns_data_generator_time_range():
 
     data_three_rows = cr.read_table_data(infile_path=file)
 
-    data_time_converted = cr.convert_time(
+    data_time_converted = cr.parse_time(
         data=data_three_rows,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,
@@ -125,7 +125,7 @@ def test_extract_columns_data():
     to_timestamp = datetime(2016, 4, 1, 22, 0, 0, tzinfo=pytz.UTC)
     data_three_rows = cr.read_table_data(infile_path=file)
 
-    data_time_converted = cr.convert_time(
+    data_time_converted = cr.parse_time(
         data=data_three_rows,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,

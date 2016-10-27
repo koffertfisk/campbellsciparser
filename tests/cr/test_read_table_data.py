@@ -79,7 +79,7 @@ def test_read_table_data_three_rows_header_row():
 def test_read_table_data_parse_time_no_time_columns():
     file = os.path.join(TEST_DATA_DIR, 'csv_testdata_empty.dat')
     with pytest.raises(cr.TimeColumnValueError):
-        cr.read_table_data(infile_path=file, parse_time=True)
+        cr.read_table_data(infile_path=file, parse_time_values=True)
 
 
 def test_read_table_data_parse_time():
@@ -92,7 +92,7 @@ def test_read_table_data_parse_time():
 
     data = cr.read_table_data(
         infile_path=file,
-        parse_time=True,
+        parse_time_values=True,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,
         time_columns=time_columns
@@ -113,7 +113,7 @@ def test_read_table_data_convert_time_to_utc():
 
     data = cr.read_table_data(
         infile_path=file,
-        parse_time=True,
+        parse_time_values=True,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,
         time_columns=time_columns,
@@ -135,7 +135,7 @@ def test_read_table_data_time_parsed_column_name():
 
     data = cr.read_table_data(
         infile_path=file,
-        parse_time=True,
+        parse_time_values=True,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,
         time_parsed_column=expected_time_parsed_column_name,

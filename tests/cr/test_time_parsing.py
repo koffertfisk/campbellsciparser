@@ -78,7 +78,7 @@ def test_parse_custom_time_formats():
     assert parsed_time == expected_parsed_time_values
 
 
-def test_convert_time_from_data_row_already_time_zone_aware():
+def test_parse_time_from_data_row_already_time_zone_aware():
     file = os.path.join(TEST_DATA_DIR, 'csv_testdata_1_row_time.dat')
     time_zone = 'Etc/GMT-1'
     pytz_time_zone = pytz.timezone(time_zone)
@@ -88,7 +88,7 @@ def test_convert_time_from_data_row_already_time_zone_aware():
     expected_datetime = datetime(2016, 1, 1, 22, 30, 15, tzinfo=pytz_time_zone)
 
     data = cr.read_table_data(infile_path=file)
-    data_time_converted = cr.convert_time(
+    data_time_converted = cr.parse_time(
         data=data,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,
@@ -101,7 +101,7 @@ def test_convert_time_from_data_row_already_time_zone_aware():
     assert expected_datetime == data_time_converted_first_row_dt
 
 
-def test_convert_time_from_data_row_not_already_time_zone_aware():
+def test_parse_time_from_data_row_not_already_time_zone_aware():
     file = os.path.join(TEST_DATA_DIR, 'csv_testdata_1_row_time_no_tz.dat')
     time_zone = 'Etc/GMT-1'
     pytz_time_zone = pytz.timezone(time_zone)
@@ -111,7 +111,7 @@ def test_convert_time_from_data_row_not_already_time_zone_aware():
     expected_datetime = datetime(2016, 1, 1, 22, 30, 15, tzinfo=pytz_time_zone)
 
     data = cr.read_table_data(infile_path=file)
-    data_time_converted = cr.convert_time(
+    data_time_converted = cr.parse_time(
         data=data,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,
@@ -124,7 +124,7 @@ def test_convert_time_from_data_row_not_already_time_zone_aware():
     assert expected_datetime == data_time_converted_first_row_dt
 
 
-def test_convert_time_from_data_row_with_column_name():
+def test_parse_time_from_data_row_with_column_name():
     file = os.path.join(TEST_DATA_DIR, 'csv_testdata_1_row_time.dat')
     time_zone = 'Etc/GMT-1'
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S', '%z']
@@ -133,7 +133,7 @@ def test_convert_time_from_data_row_with_column_name():
     data = cr.read_table_data(infile_path=file)
     expected_time_parsed_column = "TIMESTAMP"
 
-    data_time_converted = cr.convert_time(
+    data_time_converted = cr.parse_time(
         data=data,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,
@@ -147,7 +147,7 @@ def test_convert_time_from_data_row_with_column_name():
     assert time_parsed_column_name == expected_time_parsed_column
 
 
-def test_convert_time_from_data_row_to_utc():
+def test_parse_time_from_data_row_to_utc():
     file = os.path.join(TEST_DATA_DIR, 'csv_testdata_1_row_time.dat')
     time_zone = 'Etc/GMT-1'
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S', '%z']
@@ -156,7 +156,7 @@ def test_convert_time_from_data_row_to_utc():
     expected_datetime = datetime(2016, 1, 1, 21, 30, 15, tzinfo=pytz.UTC)
 
     data = cr.read_table_data(infile_path=file)
-    data_time_converted = cr.convert_time(
+    data_time_converted = cr.parse_time(
         data=data,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,
@@ -169,7 +169,7 @@ def test_convert_time_from_data_row_to_utc():
     assert expected_datetime == data_time_converted_first_row_dt
 
 
-def test_convert_time_from_data_row_replace_column():
+def test_parse_time_from_data_row_replace_column():
     file = os.path.join(TEST_DATA_DIR, 'csv_testdata_1_row_time_and_values.dat')
     time_zone = 'Etc/GMT-1'
     time_format_args_library = ['%Y', '%m', '%d', '%H', '%M', '%S']
@@ -178,7 +178,7 @@ def test_convert_time_from_data_row_replace_column():
     expected_datetime = datetime(2016, 1, 1, 21, 30, 15, tzinfo=pytz.UTC)
 
     data = cr.read_table_data(infile_path=file)
-    data_time_converted = cr.convert_time(
+    data_time_converted = cr.parse_time(
         data=data,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,
@@ -193,10 +193,10 @@ def test_convert_time_from_data_row_replace_column():
     assert expected_datetime == data_time_converted_first_row_dt
 
 
-def test_convert_time_no_time_columns_error():
+def test_parse_time_no_time_columns_error():
     data = list(OrderedDict())
     with pytest.raises(cr.TimeColumnValueError):
-        cr.convert_time(
+        cr.parse_time(
             data=data, time_zone='UTC', time_format_args_library=[], time_columns=[])
 
 
@@ -292,3 +292,23 @@ def test_parse_hour_minute_raises_error():
         cr._parse_hourminute('')
     with pytest.raises(cr.TimeColumnValueError):
         cr._parse_hourminute('12345')
+
+
+def test_convert_time_zone():
+    from_time_zone = 'Europe/Stockholm'
+    to_time_zone = 'UTC'
+    dt = datetime(2016, 1, 1, 21, 15, 30, tzinfo=pytz.timezone(from_time_zone))
+    data = [OrderedDict([('Label_1', 'some_value'), ('Label_2', dt), ('Label_3', 'some_other_value')])]
+
+    cr.convert_time_zone(data, time_column='Label_2', to_time_zone=to_time_zone)
+
+    expected_dt = datetime(2016, 1, 1, 20, 15, 30, tzinfo=pytz.timezone(to_time_zone))
+
+    time_converted_time_zone = data[0].get('Label_2')
+
+    assert time_converted_time_zone == expected_dt
+
+
+def test_convert_time_zone_raises_error():
+    with pytest.raises(cr.UnknownPytzTimeZoneError):
+        cr.convert_time_zone([], time_column='Label_2', to_time_zone='Foo')

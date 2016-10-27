@@ -70,6 +70,10 @@ def _data_generator(data):
         yield row
 
 
+def _convert_time_zone(dt, to_time_zone):
+    return dt.astimezone(to_time_zone)
+
+
 def _datetime_to_string(dt, include_time_zone=False):
     """
     Returns a string formatted representation of a datetime object, including or
@@ -498,126 +502,77 @@ def _values_to_strings(row, include_time_zone=False):
     return row.values()
 
 
-def convert_time(data, time_zone, time_format_args_library, time_columns,
-                 time_parsed_column=None, replace_time_column=None, to_utc=False):
-    """
-    Converts specific time columns from a data set into a datetime object.
+def convert_time_zone(data, time_column, to_time_zone):
+    """Converts a data set's time zone.
 
     Parameters
     ----------
     data : list of OrderedDict
-        Data set to convert.
-    time_zone : str
-        String representation of a valid pytz time zone. (See pytz docs
-        for a list of valid time zones). The time zone refers to collected data's
-        time zone, which defaults to UTC and is used for localization and time conversion.
-    time_format_args_library : list of str
-        List of the maximum expected string
-        format columns sequence to match against when parsing time values. Defaults to
-        empty library.
-    time_columns : list of str or int
-        Column(s) (names or indices) to use for time conversion.
-    time_parsed_column : str, optional
-        Converted time column name. If not given, use the name of the first
-        time column.
-    replace_time_column : str or int, optional
-        Column (name or index) to place the parsed datetime object at. If not given,
-        insert at the first time column index.
-    to_utc : bool, optional
-        Convert time to UTC.
+        Data set to time zone convert.
+    time_column : str or int
+        Time column name (or index) to convert.
+    to_time_zone : String representation of a valid pytz time zone.
+        Time zone to convert all rows' timestamp to.
 
     Returns
     -------
     list of OrderedDict
-        Time converted data set.
+        Time zone converted data set.
 
     Examples
     --------
-    >>> data = [
-    ...     OrderedDict([
-    ...         (0, 'some_value'),
-    ...         (1, '2016'),
-    ...         (2, '123'),
-    ...         (3, '1234'),
-    ...         (4, 'some_other_value')
-    ...     ])
-    ... ]
-    >>> convert_time(data=data, time_zone='Etc/GMT-1',
-    ...     time_format_args_library=['%Y', '%j', '%H%M'], time_columns=[1, 2, 3])
-    [OrderedDict([(0, 'some_value'), \
-(1, datetime.datetime(2016, 5, 2, 12, 34, tzinfo=<StaticTzInfo 'Etc/GMT-1'>)), \
-(4, 'some_other_value')])]
+    >>> import pytz
 
     >>> data = [
     ...     OrderedDict([
-    ...         ('Label_1', 'some_value'),
-    ...         ('Label_2', '2016-05-02 12:34:15'),
-    ...         ('Label_3', 'some_other_value')
+    ...         ('Label_1', 'some_value_1'),
+    ...         ('Label_2', datetime(2016, 5, 2, 12, 34, 15,
+    ...             tzinfo=pytz.timezone('Europe/Stockholm'))),
+    ...         ('Label_3', 'some_other_value_1')
+    ...     ]),
+    ...     OrderedDict([
+    ...         ('Label_1', 'some_value_2'),
+    ...         ('Label_2', datetime(2016, 5, 2, 13, 34, 15,
+    ...             tzinfo=pytz.timezone('Europe/Stockholm'))),
+    ...         ('Label_3', 'some_other_value_2')
+    ...     ]),
+    ...     OrderedDict([
+    ...         ('Label_1', 'some_value_3'),
+    ...         ('Label_2', datetime(2016, 5, 2, 14, 34, 15,
+    ...             tzinfo=pytz.timezone('Europe/Stockholm'))),
+    ...         ('Label_3', 'some_other_value_2')
     ...     ])
     ... ]
-    >>> convert_time(
-    ...     data, time_zone='Etc/GMT-1', time_format_args_library=['%Y-%m-%d %H:%M:%S'],
-    ...     time_parsed_column='TIMESTAMP', time_columns=['Label_2'], to_utc=True)
-    [OrderedDict([('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, \
-11, 34, 15, tzinfo=<UTC>)), ('Label_3', 'some_other_value')])]
+
+    >>> convert_time_zone(data, 'Label_2', 'Asia/Hong_Kong')
+    [OrderedDict([('Label_1', 'some_value_1'), ('Label_2', datetime.datetime(2016, 5, 2, \
+19, 34, 15, tzinfo=<DstTzInfo 'Asia/Hong_Kong' HKT+8:00:00 STD>)), ('Label_3', \
+'some_other_value_1')]), OrderedDict([('Label_1', 'some_value_2'), ('Label_2', \
+datetime.datetime(2016, 5, 2, 20, 34, 15, \
+tzinfo=<DstTzInfo 'Asia/Hong_Kong' HKT+8:00:00 STD>)), ('Label_3', 'some_other_value_2')]), \
+OrderedDict([('Label_1', 'some_value_3'), ('Label_2', \
+datetime.datetime(2016, 5, 2, 21, 34, 15, tzinfo=<DstTzInfo 'Asia/Hong_Kong' HKT+8:00:00 STD>)), \
+('Label_3', 'some_other_value_2')])]
 
     Raises
     ------
-    TimeColumnValueError: If not at least one time column is given or if the specified
-        time column to replace is not found.
+    UnknownPytzTimeZoneError: If the provided time zone is not a valid pytz time zone.
 
     """
     try:
-        pytz_time_zone = pytz.timezone(time_zone)
+        pytz_to_time_zone = pytz.timezone(to_time_zone)
     except pytz.UnknownTimeZoneError:
         msg = "{time_zone} is not a valid pytz time zone! "
-        msg += "See pytz docs for valid time zones".format(time_zone=time_zone)
+        msg += "See pytz docs for valid time zones".format(time_zone=to_time_zone)
         raise UnknownPytzTimeZoneError(msg)
 
-    if not time_format_args_library:
-        time_format_args_library = []
-    if not time_columns:
-        raise TimeColumnValueError("At least one time column is required!")
-
-    data_converted = []
+    data_time_zone_converted = []
 
     for row in _data_generator(data):
-        if not replace_time_column:
-            replace_time_column_name = (
-                _find_first_time_column_name(
-                    list(row.keys()), time_columns)
-            )
-        else:
-            if replace_time_column not in list(row.keys()):
-                msg = "{0} not found in column names!".format(replace_time_column)
-                raise TimeColumnValueError(msg)
+        row[time_column] = _convert_time_zone(row.get(time_column), pytz_to_time_zone)
+        data_time_zone_converted.append(row)
 
-            replace_time_column_name = replace_time_column
-
-        row_time_column_values = [value for name, value in row.items()
-                                  if name in time_columns]
-        row_time_converted = (
-            _parse_time_values(
-                pytz_time_zone, time_format_args_library,
-                *row_time_column_values, to_utc=to_utc)
-        )
-
-        old_name = replace_time_column_name
-        new_name = old_name
-        if time_parsed_column:
-            new_name = time_parsed_column
-
-        row_converted = OrderedDict(
-            (new_name if name == old_name else name, value) for name, value in row.items())
-        row_converted[new_name] = row_time_converted
-
-        for time_column in time_columns:
-            if time_column in row_converted and time_column != new_name:
-                del row_converted[time_column]
-
-        data_converted.append(row_converted)
-
-    return data_converted
+    return data_time_zone_converted
 
 
 def export_array_ids_to_csv(data, array_ids_info, export_header=False,
@@ -902,6 +857,129 @@ def filter_mixed_array_data(data, *array_ids):
     return data_filtered
 
 
+def parse_time(data, time_zone, time_format_args_library, time_columns,
+               time_parsed_column=None, replace_time_column=None, to_utc=False):
+    """
+    Parses specific time columns from a data set into a datetime object.
+
+    Parameters
+    ----------
+    data : list of OrderedDict
+        Data set to convert.
+    time_zone : str
+        String representation of a valid pytz time zone. (See pytz docs
+        for a list of valid time zones). The time zone refers to collected data's
+        time zone, which defaults to UTC and is used for localization and time conversion.
+    time_format_args_library : list of str
+        List of the maximum expected string
+        format columns sequence to match against when parsing time values. Defaults to
+        empty library.
+    time_columns : list of str or int
+        Column(s) (names or indices) to use for time conversion.
+    time_parsed_column : str, optional
+        Converted time column name. If not given, use the name of the first
+        time column.
+    replace_time_column : str or int, optional
+        Column (name or index) to place the parsed datetime object at. If not given,
+        insert at the first time column index.
+    to_utc : bool, optional
+        Convert time to UTC.
+
+    Returns
+    -------
+    list of OrderedDict
+        Time converted data set.
+
+    Examples
+    --------
+    >>> data = [
+    ...     OrderedDict([
+    ...         (0, 'some_value'),
+    ...         (1, '2016'),
+    ...         (2, '123'),
+    ...         (3, '1234'),
+    ...         (4, 'some_other_value')
+    ...     ])
+    ... ]
+    >>> parse_time(data=data, time_zone='Etc/GMT-1',
+    ...     time_format_args_library=['%Y', '%j', '%H%M'], time_columns=[1, 2, 3])
+    [OrderedDict([(0, 'some_value'), \
+(1, datetime.datetime(2016, 5, 2, 12, 34, tzinfo=<StaticTzInfo 'Etc/GMT-1'>)), \
+(4, 'some_other_value')])]
+
+    >>> data = [
+    ...     OrderedDict([
+    ...         ('Label_1', 'some_value'),
+    ...         ('Label_2', '2016-05-02 12:34:15'),
+    ...         ('Label_3', 'some_other_value')
+    ...     ])
+    ... ]
+    >>> parse_time(
+    ...     data, time_zone='Etc/GMT-1', time_format_args_library=['%Y-%m-%d %H:%M:%S'],
+    ...     time_parsed_column='TIMESTAMP', time_columns=['Label_2'], to_utc=True)
+    [OrderedDict([('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, \
+11, 34, 15, tzinfo=<UTC>)), ('Label_3', 'some_other_value')])]
+
+    Raises
+    ------
+    TimeColumnValueError: If not at least one time column is given or if the specified
+        time column to replace is not found.
+    UnknownPytzTimeZoneError: If the provided time zone is not a valid pytz time zone.
+
+    """
+    try:
+        pytz_time_zone = pytz.timezone(time_zone)
+    except pytz.UnknownTimeZoneError:
+        msg = "{time_zone} is not a valid pytz time zone! "
+        msg += "See pytz docs for valid time zones".format(time_zone=time_zone)
+        raise UnknownPytzTimeZoneError(msg)
+
+    if not time_format_args_library:
+        time_format_args_library = []
+    if not time_columns:
+        raise TimeColumnValueError("At least one time column is required!")
+
+    data_converted = []
+
+    for row in _data_generator(data):
+        if not replace_time_column:
+            replace_time_column_name = (
+                _find_first_time_column_name(
+                    list(row.keys()), time_columns)
+            )
+        else:
+            if replace_time_column not in list(row.keys()):
+                msg = "{0} not found in column names!".format(replace_time_column)
+                raise TimeColumnValueError(msg)
+
+            replace_time_column_name = replace_time_column
+
+        row_time_column_values = [value for name, value in row.items()
+                                  if name in time_columns]
+        row_time_converted = (
+            _parse_time_values(
+                pytz_time_zone, time_format_args_library,
+                *row_time_column_values, to_utc=to_utc)
+        )
+
+        old_name = replace_time_column_name
+        new_name = old_name
+        if time_parsed_column:
+            new_name = time_parsed_column
+
+        row_converted = OrderedDict(
+            (new_name if name == old_name else name, value) for name, value in row.items())
+        row_converted[new_name] = row_time_converted
+
+        for time_column in time_columns:
+            if time_column in row_converted and time_column != new_name:
+                del row_converted[time_column]
+
+        data_converted.append(row_converted)
+
+    return data_converted
+
+
 def read_array_ids_data(infile_path, first_line_num=0, last_line_num=None, fix_floats=True,
                         array_id_names=None):
     """Parses data filtered by array id (each rows' first element) read from a file.
@@ -1018,7 +1096,7 @@ def read_mixed_array_data(infile_path, first_line_num=0, last_line_num=None, fix
 
 
 def read_table_data(infile_path, header=None, header_row=None, first_line_num=0,
-                    last_line_num=None, parse_time=False, time_zone='UTC',
+                    last_line_num=None, parse_time_values=False, time_zone='UTC',
                     time_format_args_library=None, time_parsed_column=None, time_columns=None,
                     to_utc=False):
     """
@@ -1037,7 +1115,7 @@ def read_table_data(infile_path, header=None, header_row=None, first_line_num=0,
         First line number to read. NOTE: Zero-based numbering.
     last_line_num : int, optional
         Last line number to read. NOTE: Zero-based numbering.
-    parse_time : bool, optional
+    parse_time_values : bool, optional
         Convert datalogger specific time string representations to datetime objects.
     time_zone : str
         String representation of a valid pytz time zone. (See pytz docs
@@ -1103,13 +1181,13 @@ OrderedDict([('Label_1', 'some_value'), ('Label_2', '2016-05-02 19:34:15'), \
 ('Label_3', 'some_other_value')])]
 
     >>> exported_data = read_table_data(
-    ... temp_outfile,
-    ... header_row=0,
-    ... parse_time=True,
-    ... time_zone='UTC',
-    ... time_format_args_library=['%Y-%m-%d %H:%M:%S'],
-    ... time_parsed_column='TIMESTAMP',
-    ... time_columns=['Label_2']
+    ...     temp_outfile,
+    ...     header_row=0,
+    ...     parse_time_values=True,
+    ...     time_zone='UTC',
+    ...     time_format_args_library=['%Y-%m-%d %H:%M:%S'],
+    ...     time_parsed_column='TIMESTAMP',
+    ...     time_columns=['Label_2']
     ... )
     >>> exported_data[:3]
     [OrderedDict([('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, \
@@ -1130,8 +1208,8 @@ tzinfo=<UTC>)), ('Label_3', 'some_other_value')]), OrderedDict([('Label_1', \
         last_line_num=last_line_num
     )]
 
-    if parse_time:
-        data = convert_time(
+    if parse_time_values:
+        data = parse_time(
             data=data,
             time_zone=time_zone,
             time_format_args_library=time_format_args_library,
