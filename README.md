@@ -46,12 +46,40 @@ To read mixed array data
 ```sh
 >>> data_mixed_array = read_mixed_array_data('/path/to/mixed_array_data.dat')
 >>> data_mixed_array
-[OrderedDict([(0, 100), (1, '2016'), (2, '159'), (3, '0'), (4, '11.273)]), 
-OrderedDict([(0, 101), (1, '2016'), (2, '159'), (3, '17.320')]
-OrderedDict([(0, 110), (1, '2016'), (2, '159'), (3, '0'), (4, '11.379')]),
-OrderedDict([(0, 110), (1, '2016'), (2, '159'), (3, '5'), (4, '11.443')]),
-OrderedDict([(0, 110), (1, '2016'), (2, '159'), (3, '10'), (4, '11.407')]),
-OrderedDict([(0, 110), (1, '2016'), (2, '159'), (3, '15'), (4, '11.340')])]
+[OrderedDict([(0, '100'), (1, '2016'), (2, '159'), (3, '0'), (4, '11.273')]), 
+OrderedDict([(0, '101'), (1, '2016'), (2, '159'), (3, '17.320')]
+OrderedDict([(0, '110'), (1, '2016'), (2, '159'), (3, '0'), (4, '11.379')]),
+OrderedDict([(0, '110'), (1, '2016'), (2, '159'), (3, '5'), (4, '11.443')]),
+OrderedDict([(0, '110'), (1, '2016'), (2, '159'), (3, '10'), (4, '11.407')]),
+OrderedDict([(0, '110'), (1, '2016'), (2, '159'), (3, '15'), (4, '11.340')])]
+```
+Filter mixed array data by array id
+```sh
+>>> filter_mixed_array_data(data, '100')
+defaultdict(<class 'list'>, {'100': [OrderedDict([(0, '100'), (1, '2016'), 
+(2, '159'), (3, '0'), (4, '11.273')])]})
+```
+Read array ids data
+```sh
+>>> data_by_array_ids = read_array_ids_data('/path/to/mixed_array_data.dat', 
+... array_id_names={'100': 'Hourly'})
+>>> hourly_data = data_by_array_ids.get('Hourly')
+>>> hourly_data
+[OrderedDict([(0, '100'), (1, '2016'), (2, '159'), (3, '0'), (4, '11.273')])]
+```
+Parsing time
+```sh
+>>> hourly_data_localized = parse_time(data=hourly_data, time_zone='Europe/Stockholm',
+... time_format_args_library=['%Y', '%j', '%H%M'], time_columns=[1, 2, 3])
+>>> hourly_data_localized
+[OrderedDict([(0, '100'), (1, datetime.datetime(2016, 6, 7, 0, 0, 
+tzinfo=<DstTzInfo 'Europe/Stockholm' SET+1:00:00 STD>))), (4, '11.273')])]
+```
+Converting time zones
+```sh
+>>> hourly_data_as_utc = convert_time_zone(data=hourly_data_localized, time_column=1, time_zone='UTC')
+>>> hourly_data_as_utc
+[OrderedDict([(0, '100'), (1, datetime.datetime(2016, 6, 6, 23, 0, tzinfo=<UTC>)), (4, '11.273')])]
 ```
 Read and parse time table data
 ```sh
