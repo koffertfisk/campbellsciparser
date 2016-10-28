@@ -3,13 +3,14 @@
 
 import os
 
-from collections import OrderedDict
 from datetime import datetime
 
 import pytest
 import pytz
 
 from campbellsciparser import cr
+from campbellsciparser.dataset import DataSet
+from campbellsciparser.dataset import Row
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -194,7 +195,7 @@ def test_parse_time_from_data_row_replace_column():
 
 
 def test_parse_time_no_time_columns_error():
-    data = list(OrderedDict())
+    data = list(Row())
     with pytest.raises(cr.TimeColumnValueError):
         cr.parse_time(
             data=data, time_zone='UTC', time_format_args_library=[], time_columns=[])
@@ -298,7 +299,10 @@ def test_convert_time_zone():
     from_time_zone = 'Europe/Stockholm'
     to_time_zone = 'UTC'
     dt = datetime(2016, 1, 1, 21, 15, 30, tzinfo=pytz.timezone(from_time_zone))
-    data = [OrderedDict([('Label_1', 'some_value'), ('Label_2', dt), ('Label_3', 'some_other_value')])]
+
+    data = DataSet([
+        Row([('Label_1', 'some_value'), ('Label_2', dt), ('Label_3', 'some_other_value')])
+    ])
 
     cr.convert_time_zone(data, time_column='Label_2', to_time_zone=to_time_zone)
 
@@ -311,4 +315,4 @@ def test_convert_time_zone():
 
 def test_convert_time_zone_raises_error():
     with pytest.raises(cr.UnknownPytzTimeZoneError):
-        cr.convert_time_zone([], time_column='Label_2', to_time_zone='Foo')
+        cr.convert_time_zone(DataSet([]), time_column='Label_2', to_time_zone='Foo')

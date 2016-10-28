@@ -4,6 +4,7 @@
 import os
 
 from campbellsciparser import cr
+from campbellsciparser.dataset import DataSet
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -26,8 +27,8 @@ def test_filter_array_ids_data_no_filter():
     data_mixed = cr.read_mixed_array_data(infile_path=file)
     data_split = cr.read_array_ids_data(infile_path=file)
     data_filtered = cr.filter_mixed_array_data(data=data_split)
-    data_split_merged = [row for array_id, array_id_data in data_filtered.items()
-                         for row in array_id_data]
+    data_split_merged = DataSet([row for array_id, array_id_data in data_filtered.items()
+                                 for row in array_id_data])
 
     assert len(data_mixed) == len(data_split_merged)
 
@@ -40,8 +41,8 @@ def test_filter_array_ids_data_filter_all():
     data_split_filtered = cr.filter_mixed_array_data(
         data_split, '201', '203', '204', '210')
 
-    data_split_merged = [row for array_id, array_id_data in data_split_filtered.items()
-                         for row in array_id_data]
+    data_split_merged = DataSet([row for array_id, array_id_data in data_split_filtered.items()
+                                 for row in array_id_data])
 
     assert len(data_mixed) == len(data_split_merged)
 
@@ -58,9 +59,9 @@ def test_filter_array_ids_data_filter():
     data_split_filtered = cr.filter_mixed_array_data(
         data_split_unfiltered, '201', '203')
 
-    data_split_filtered_merged = [
+    data_split_filtered_merged = DataSet([
         row for array_id, array_id_data in data_split_filtered.items()
         for row in array_id_data
-    ]
+    ])
 
     len(data_pre_filtered) == len(data_split_filtered_merged)

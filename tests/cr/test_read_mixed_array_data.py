@@ -4,6 +4,7 @@
 import os
 
 from campbellsciparser import cr
+from campbellsciparser.dataset import DataSet
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -36,8 +37,8 @@ def test_length_ten_rows():
     assert len(data) == 10
 
     data = cr.read_array_ids_data(infile_path=file)
-    data_mixed = [row for array_id, array_id_data in data.items()
-                  for row in array_id_data]
+    data_mixed = DataSet([row for array_id, array_id_data in data.items()
+                          for row in array_id_data])
     assert len(data_mixed) == 10
 
 
@@ -66,8 +67,8 @@ def test_compare_length_ten_rows():
 
     data_mixed = cr.read_mixed_array_data(infile_path=file)
     data_split = cr.read_array_ids_data(infile_path=file)
-    data_split_merged = [row for array_id, array_id_data in data_split.items()
-                         for row in array_id_data]
+    data_split_merged = DataSet([row for array_id, array_id_data in data_split.items()
+                                 for row in array_id_data])
 
     assert len(data_mixed) == len(data_split_merged)
 
@@ -77,8 +78,8 @@ def test_compare_data_ten_rows():
 
     data_mixed = cr.read_mixed_array_data(infile_path=file)
     data_split = cr.read_array_ids_data(infile_path=file)
-    data_split_merged = [row for array_id, array_id_data in data_split.items()
-                         for row in array_id_data]
+    data_split_merged = DataSet([row for array_id, array_id_data in data_split.items()
+                                 for row in array_id_data])
 
     assert len(data_mixed) == len(data_split_merged)
 
@@ -93,9 +94,9 @@ def test_compare_data_ten_rows_lookup():
     data_split_translated = cr.read_array_ids_data(
         infile_path=file, array_id_names=array_ids_names)
 
-    data_split_translated_merged = [
+    data_split_translated_merged = DataSet([
         row for array_id, array_id_data in data_split_translated.items()
         for row in array_id_data
-    ]
+    ])
 
     assert len(data_mixed) == len(data_split_translated_merged)

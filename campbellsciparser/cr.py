@@ -2,17 +2,15 @@
 # -*- coding: utf-8 -*-
 
 """
-CR
----------------------
+cr
+--
 Utility for parsing and exporting data outputted by Campbell Scientific, Inc.
 CR-type dataloggers.
 
 """
-import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import csv
+import os
 
 from collections import defaultdict, namedtuple
 from datetime import datetime
@@ -838,11 +836,12 @@ def filter_mixed_array_data(data, *array_ids):
     ...     ('Hour/Minute', '1245'), ('Data', '44.2')])
     ... ])
     >>> filter_mixed_array_data(data, '100')
-    defaultdict(<class 'list'>, {'100': DataSet([Row([('ID', '100'), ('Year', '2016'), \
-('Julian Day', '123'), ('Data', '54.2')])])})
+    defaultdict(<class 'campbellsciparser.dataset.DataSet'>, {'100': DataSet([Row([('ID', \
+'100'), ('Year', '2016'), ('Julian Day', '123'), ('Data', '54.2')])])})
+
     >>> filter_mixed_array_data(data, '101')
-    defaultdict(<class 'list'>, {'101': DataSet([Row([('ID', '101'), ('Year', '2016'), \
-('Julian Day', '123'), ('Hour/Minute', '1245'), ('Data', '44.2')])])})
+    defaultdict(<class 'campbellsciparser.dataset.DataSet'>, {'101': DataSet([Row([('ID', \
+'101'), ('Year', '2016'), ('Julian Day', '123'), ('Hour/Minute', '1245'), ('Data', '44.2')])])})
     >>> data_filtered = filter_mixed_array_data(data, '100', '101')
     >>> data_filtered.get('100')
     DataSet([Row([('ID', '100'), ('Year', '2016'), ('Julian Day', '123'), ('Data', '54.2')])])
@@ -1123,9 +1122,9 @@ def read_mixed_array_data(infile_path, first_line_num=0, last_line_num=None, fix
 
 
 def read_table_data(infile_path, header=None, header_row=None, first_line_num=0,
-                    last_line_num=None, parse_time_values=False, time_zone='UTC',
-                    time_format_args_library=None, time_parsed_column=None, time_columns=None,
-                    to_utc=False):
+                    last_line_num=None, parse_time_columns=False, time_zone='UTC',
+                    time_format_args_library=None, time_parsed_column=None,
+                    time_columns=None, to_utc=False):
     """
     Reads data from a file and stores it in the parser's data structure format
     (see class documentation for details).
@@ -1142,7 +1141,7 @@ def read_table_data(infile_path, header=None, header_row=None, first_line_num=0,
         First line number to read. NOTE: Zero-based numbering.
     last_line_num : int, optional
         Last line number to read. NOTE: Zero-based numbering.
-    parse_time_values : bool, optional
+    parse_time_columns : bool, optional
         Convert datalogger specific time string representations to datetime objects.
     time_zone : str
         String representation of a valid pytz time zone. (See pytz docs
@@ -1183,46 +1182,46 @@ def read_table_data(infile_path, header=None, header_row=None, first_line_num=0,
     >>> export_to_csv(data, temp_outfile, export_header=True)
 
     >>> exported_data = read_table_data(temp_outfile, header_row=0)
-    >>> exported_data[:3]
-    DataSet([Row([('Label_1', 'some_value'), ('Label_2', '2016-05-02 00:34:15'), \
+    >>> exported_data.data[:3]
+    [Row([('Label_1', 'some_value'), ('Label_2', '2016-05-02 00:34:15'), \
 ('Label_3', 'some_other_value')]), Row([('Label_1', 'some_value'), \
 ('Label_2', '2016-05-02 01:34:15'), ('Label_3', 'some_other_value')]), \
 Row([('Label_1', 'some_value'), ('Label_2', '2016-05-02 02:34:15'), \
-('Label_3', 'some_other_value')])])
+('Label_3', 'some_other_value')])]
 
     >>> new_column_names = ['New_Label_1', 'New_Label_2', 'New_Label_3']
     >>> exported_data = read_table_data(temp_outfile, header=new_column_names, first_line_num=1)
-    >>> exported_data[:3]
-    DataSet([Row([('New_Label_1', 'some_value'), ('New_Label_2', '2016-05-02 00:34:15'), \
+    >>> exported_data.data[:3]
+    [Row([('New_Label_1', 'some_value'), ('New_Label_2', '2016-05-02 00:34:15'), \
 ('New_Label_3', 'some_other_value')]), Row([('New_Label_1', 'some_value'), \
 ('New_Label_2', '2016-05-02 01:34:15'), ('New_Label_3', 'some_other_value')]), \
 Row([('New_Label_1', 'some_value'), ('New_Label_2', '2016-05-02 02:34:15'), \
-('New_Label_3', 'some_other_value')])])
+('New_Label_3', 'some_other_value')])]
 
     >>> exported_data = read_table_data(temp_outfile, header_row=0, first_line_num=18)
-    >>> exported_data
-    DataSet([Row([('Label_1', 'some_value'), ('Label_2', '2016-05-02 17:34:15'), \
+    >>> exported_data.data
+    [Row([('Label_1', 'some_value'), ('Label_2', '2016-05-02 17:34:15'), \
 ('Label_3', 'some_other_value')]), Row([('Label_1', 'some_value'), \
 ('Label_2', '2016-05-02 18:34:15'), ('Label_3', 'some_other_value')]), \
 Row([('Label_1', 'some_value'), ('Label_2', '2016-05-02 19:34:15'), \
-('Label_3', 'some_other_value')])])
+('Label_3', 'some_other_value')])]
 
     >>> exported_data = read_table_data(
     ...     temp_outfile,
     ...     header_row=0,
-    ...     parse_time_values=True,
+    ...     parse_time_columns=True,
     ...     time_zone='UTC',
     ...     time_format_args_library=['%Y-%m-%d %H:%M:%S'],
     ...     time_parsed_column='TIMESTAMP',
     ...     time_columns=['Label_2']
     ... )
-    >>> exported_data[:3]
-    DataSet([Row([('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, \
+    >>> exported_data.data[:3]
+    [Row([('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, \
 0, 34, 15, tzinfo=<UTC>)), ('Label_3', 'some_other_value')]), Row([\
 ('Label_1', 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, 1, 34, 15, \
 tzinfo=<UTC>)), ('Label_3', 'some_other_value')]), Row([('Label_1', \
 'some_value'), ('TIMESTAMP', datetime.datetime(2016, 5, 2, 2, 34, 15, tzinfo=<UTC>)), \
-('Label_3', 'some_other_value')])])
+('Label_3', 'some_other_value')])]
 
     >>> shutil.rmtree(temp_dir)
 
@@ -1235,7 +1234,7 @@ tzinfo=<UTC>)), ('Label_3', 'some_other_value')]), Row([('Label_1', \
         last_line_num=last_line_num
     )])
 
-    if parse_time_values:
+    if parse_time_columns:
         data = parse_time(
             data=data,
             time_zone=time_zone,
@@ -1331,7 +1330,3 @@ def update_column_names(data, column_names, match_row_lengths=True,
             data_updated_column_names, data_mismatched_row_lengths)
 
     return data_updated_column_names
-
-if __name__ == "__main__":
-    import doctest
-    doctest.testmod()

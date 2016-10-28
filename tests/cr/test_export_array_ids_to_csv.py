@@ -6,9 +6,9 @@ import tempfile
 
 import pytest
 
-from collections import OrderedDict
-
 from campbellsciparser import cr
+from campbellsciparser.dataset import DataSet
+from campbellsciparser.dataset import Row
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -27,12 +27,12 @@ def assert_two_data_sets_equal(list_1, list_2):
 
 def test_export_array_ids_to_csv_empty_library():
     with pytest.raises(cr.ArrayIdsInfoValueError):
-        cr.export_array_ids_to_csv(data=[], array_ids_info={})
+        cr.export_array_ids_to_csv(data={}, array_ids_info={})
 
 
 def test_export_array_ids_to_csv_insufficient_info():
     file = os.path.join(TEST_DATA_DIR, 'csv_testdata_mixed_array_10_rows.dat')
-    data= cr.read_array_ids_data(infile_path=file)
+    data = cr.read_array_ids_data(infile_path=file)
 
     with pytest.raises(cr.ArrayIdsExportInfoError):
         cr.export_array_ids_to_csv(data=data, array_ids_info={'201': None})
@@ -47,10 +47,10 @@ def test_export_array_ids_to_csv_content():
         output_file_101 = os.path.join(temp_dir, 'test_101.dat')
 
         data = {
-            '100': [OrderedDict([(0, '100'), (1, '2016'), (2, '123'), (3, '54.2')])],
-            '101': [OrderedDict([
+            '100': DataSet([Row([(0, '100'), (1, '2016'), (2, '123'), (3, '54.2')])]),
+            '101': DataSet([Row([
                 (0, '101'), (1, '2016'), (2, '123'), (3, '1245'), (4, '44.2')
-            ])]
+            ])])
         }
 
         cr.export_array_ids_to_csv(
@@ -74,11 +74,11 @@ def test_export_array_ids_to_csv_headers():
         output_file_101 = os.path.join(temp_dir, 'test_101.dat')
 
         data = {
-            '100': [OrderedDict([
-                ('ID', '100'), ('Year', '2016'), ('Julian Day', '123'), ('Data', '54.2')])],
-            '101': [OrderedDict([
+            '100': DataSet([Row([
+                ('ID', '100'), ('Year', '2016'), ('Julian Day', '123'), ('Data', '54.2')])]),
+            '101': DataSet([Row([
                 ('ID', '101'), ('Year', '2016'), ('Julian Day', '123'),
-                ('Hour/Minute', '1245'), ('Data', '44.2')])]
+                ('Hour/Minute', '1245'), ('Data', '44.2')])])
         }
 
         data_100_column_names = list(data.get('100')[0].keys())

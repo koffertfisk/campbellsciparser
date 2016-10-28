@@ -3,13 +3,13 @@
 
 import os
 
-from collections import OrderedDict
 from datetime import datetime
 
 import pytest
 import pytz
 
 from campbellsciparser import cr
+from campbellsciparser.dataset import Row
 
 TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -17,9 +17,9 @@ TEST_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 def test_read_table_rows_generator_three_rows():
     file = os.path.join(TEST_DATA_DIR, 'csv_testdata_3_rows.dat')
 
-    row_1 = OrderedDict([(0, '1')])
-    row_2 = OrderedDict([(0, '1'), (1, '2')])
-    row_3 = OrderedDict([(0, '1'), (1, '2'), (2, '3')])
+    row_1 = Row([(0, '1')])
+    row_2 = Row([(0, '1'), (1, '2')])
+    row_3 = Row([(0, '1'), (1, '2'), (2, '3')])
 
     assert tuple(cr._read_table_data(
         infile_path=file)) == (row_1, row_2, row_3)
@@ -79,7 +79,7 @@ def test_read_table_data_three_rows_header_row():
 def test_read_table_data_parse_time_no_time_columns():
     file = os.path.join(TEST_DATA_DIR, 'csv_testdata_empty.dat')
     with pytest.raises(cr.TimeColumnValueError):
-        cr.read_table_data(infile_path=file, parse_time_values=True)
+        cr.read_table_data(infile_path=file, parse_time_columns=True)
 
 
 def test_read_table_data_parse_time():
@@ -92,7 +92,7 @@ def test_read_table_data_parse_time():
 
     data = cr.read_table_data(
         infile_path=file,
-        parse_time_values=True,
+        parse_time_columns=True,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,
         time_columns=time_columns
@@ -113,7 +113,7 @@ def test_read_table_data_convert_time_to_utc():
 
     data = cr.read_table_data(
         infile_path=file,
-        parse_time_values=True,
+        parse_time_columns=True,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,
         time_columns=time_columns,
@@ -135,7 +135,7 @@ def test_read_table_data_time_parsed_column_name():
 
     data = cr.read_table_data(
         infile_path=file,
-        parse_time_values=True,
+        parse_time_columns=True,
         time_zone=time_zone,
         time_format_args_library=time_format_args_library,
         time_parsed_column=expected_time_parsed_column_name,
